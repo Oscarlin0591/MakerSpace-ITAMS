@@ -58,8 +58,20 @@ p {
     background-color: white;
     border-radius: 1vh;
     border: 1px solid grey;
+    outline: none;
+}
+
+.input-field:focus {
+    border: 1px solid black;
 }
 
 .login-button {
     margin-top: 15%;
+}
+
+.error-text {
+    color: red;
+    text-align: center;
+    margin-top: 5%;
+    min-height: 24px;
 }
