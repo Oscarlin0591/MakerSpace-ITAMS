@@ -4,7 +4,7 @@
  * users to enter a new email into the mailing list.
  */
 
-import { Modal, Button, Form } from 'react-bootstrap';
+import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
 import { useState, useEffect } from 'react';
 
 type ModalProps = {
@@ -14,17 +14,29 @@ type ModalProps = {
 };
 
 function AddEmailModal({ show, onCancel, onSave }: ModalProps) {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(''); // User input email
+  const [validated, setValidated] = useState(false); // Used for validation and error message
 
   // Clear text on modal open
   useEffect(() => {
-    if (show) setEmail('');
+    if (show) {
+      setEmail('');
+      setValidated(false);
+    }
   }, [show]);
+
+  // Minor email validation
+  // https://react-bootstrap.netlify.app/docs/forms/validation
+  const isInvalid = !email || email.includes(' ') || email.includes('@');
 
   // Handle saving email
   const handleSave = () => {
-    //TODO: email validation
-    onSave(email);
+    setValidated(true);
+    if (isInvalid) return;
+
+    // Create full email from user input
+    const fullEmail = `${email}@Quinnipiac.edu`;
+    onSave(fullEmail);
   };
 
   return (
@@ -33,15 +45,22 @@ function AddEmailModal({ show, onCancel, onSave }: ModalProps) {
         <Modal.Title>Add Email</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <Form>
+        <Form noValidate>
           <Form.Group controlId="emailForm">
-            <Form.Control
-              type="email"
-              placeholder="name@example.com"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)} // Update state on change
-            />
+            <InputGroup hasValidation>
+              <Form.Control
+                type="text"
+                required
+                autoFocus
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                isInvalid={validated && isInvalid}
+              />
+              <InputGroup.Text>@Quinnipiac.edu</InputGroup.Text>
+              <Form.Control.Feedback type="invalid">
+                Please enter a valid email username.
+              </Form.Control.Feedback>
+            </InputGroup>
           </Form.Group>
         </Form>
       </Modal.Body>

@@ -29,10 +29,10 @@ export type DateRangeValue = '7d' | '1m' | '3m' | '1y' | 'all' | '';
 type ModalProps = {
   show: boolean;
   onCancel: () => void;
-  onSave: (date: Date | null, range: DateRangeValue) => void;
+  onExport: (date: Date | null, range: DateRangeValue) => void;
 };
 
-function ExportDataModal({ show, onCancel, onSave }: ModalProps) {
+function ExportDataModal({ show, onCancel, onExport }: ModalProps) {
   const [date, setDate] = useState<Date | null>(null);
   const [range, setRange] = useState<DateRangeValue>('');
 
@@ -48,7 +48,7 @@ function ExportDataModal({ show, onCancel, onSave }: ModalProps) {
   const handleExport = () => {
     //TODO: Improve validation
     if (!date || !range) return;
-    onSave(date, range);
+    onExport(date, range);
   };
 
   // Function to calculate calendar selection start date based on range
