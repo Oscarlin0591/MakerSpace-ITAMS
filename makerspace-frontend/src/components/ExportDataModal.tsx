@@ -3,15 +3,19 @@
  * A modal that will pop up date selection options for user
  * to select the date range in which they would like inventory
  * data exported.
+ * DatePicker Documentation:
+ * https://reactdatepicker.com/#example-calendar-icon-using-external-lib
  */
 
 import { Modal, Button, Form } from 'react-bootstrap';
 import { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import calendarIcon from '../assets/calendar_today.svg';
 
 // Options for dropdown menu
 const DATE_RANGE_OPTIONS = [
+  { label: 'Select a range...', value: '' },
   { label: '7 Days', value: '7d' },
   { label: '1 Month', value: '1m' },
   { label: '3 Months', value: '3m' },
@@ -47,6 +51,34 @@ function ExportDataModal({ show, onCancel, onSave }: ModalProps) {
     onSave(date, range);
   };
 
+  // Function to calculate calendar selection start date based on range
+  const getStartDate = () => {
+    if (!date || !range) {
+      return null;
+    }
+
+    const newStartDate = new Date(date);
+    switch (range) {
+      case '7d':
+        newStartDate.setDate(newStartDate.getDate() - 7);
+        break;
+      case '1m':
+        newStartDate.setMonth(newStartDate.getMonth() - 1);
+        break;
+      case '3m':
+        newStartDate.setMonth(newStartDate.getMonth() - 3);
+        break;
+      case '1y':
+        newStartDate.setFullYear(newStartDate.getFullYear() - 1);
+        break;
+      case 'all':
+      default:
+        return null;
+    }
+
+    return newStartDate;
+  };
+
   return (
     <Modal show={show} onHide={onCancel} centered>
       <Modal.Header closeButton>
@@ -58,6 +90,7 @@ function ExportDataModal({ show, onCancel, onSave }: ModalProps) {
             <Form.Label>Range</Form.Label>
             <Form.Select
               value={range}
+              autoFocus
               onChange={(e) => setRange(e.target.value as DateRangeValue)} // Update state on change
             >
               {DATE_RANGE_OPTIONS.map((option) => (
@@ -71,12 +104,23 @@ function ExportDataModal({ show, onCancel, onSave }: ModalProps) {
             <Form.Label>Date</Form.Label>
             <DatePicker
               showIcon
+              icon={
+                <img
+                  src={calendarIcon}
+                  alt="calendar"
+                  style={{ width: '20px', height: '20px' }}
+                />
+              }
               selected={date}
               onChange={(selectedDate: Date | null) => setDate(selectedDate)}
               className="form-control"
-              wrapperClassName="d-block"
               placeholderText="mm/dd/yyyy"
               autoComplete="off"
+              maxDate={new Date()}
+              startDate={getStartDate()}
+              endDate={date}
+              shouldCloseOnSelect={false}
+              disabled={range === ''}
             />
           </Form.Group>
         </Form>

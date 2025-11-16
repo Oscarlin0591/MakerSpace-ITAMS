@@ -68,5 +68,5 @@ button:focus-visible {
 }
 
 .react-datepicker-wrapper {
-  display: block;
+  display: block !important;
 }
