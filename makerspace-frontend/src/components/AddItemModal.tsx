@@ -4,7 +4,7 @@
  * by user to add a new item to the database
  */
 
-import { Modal, Button, Form, InputGroup, Row, Col } from 'react-bootstrap';
+import { Modal, Button, Form, InputGroup, Row, Col} from 'react-bootstrap';
 import { useState, useEffect } from 'react';
 import type { Category, NewItem } from '../types';
 
