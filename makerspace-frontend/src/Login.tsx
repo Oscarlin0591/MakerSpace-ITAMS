@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./Login.css";
 import quinnipacLogo from './assets/Logo.svg'
 
-function Login(): Element {
+function Login() {
     const [errorMessage, setErrorMessage] = useState("");
     const handleLogin = (): void => {
         setErrorMessage("Invalid username or password.");
