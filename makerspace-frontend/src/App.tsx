@@ -1,35 +1,118 @@
-import { useState } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
 import './App.css';
+import StockLevelsChart from './features/StockLevelsChart';
+import { ActivityChart } from './features/StorageActivityChart';
+import AddEmailModal from './components/AddEmailModal';
+import AddItemModal from './components/AddItemModal';
+import DeleteConfirmationModal from './components/DeleteConfirmationModal';
+import EditItemModal from './components/EditItemModal';
+import ExportDataModal, {
+  type DateRangeValue,
+} from './components/ExportDataModal';
+import type { Category, NewItem } from './types';
+import { Button, Container } from 'react-bootstrap';
+import { useState } from 'react';
+
+const FAKE_CATEGORIES: Category[] = [
+  { categoryID: 1, categoryName: 'Wood', units: 'pcs' },
+  { categoryID: 2, categoryName: 'Filament', units: 'g' },
+  { categoryID: 3, categoryName: 'Vinyl', units: 'meters' },
+];
+
+const FAKE_ITEM: NewItem = {
+  itemName: 'Ultimaker ABS',
+  quantity: 12,
+  lowThreshold: 1,
+  units: 'meters',
+};
 
 function App() {
-  const [count, setCount] = useState(0);
+  // Modal show values
+  const [showAddEmail, setShowAddEmail] = useState(false);
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+
+  // Handlers
+  const handleAddEmailSave = (newEmail: string) => {
+    console.log('Saving email', newEmail);
+    setShowAddEmail(false);
+  };
+  const handleAddItemSave = (newItem: NewItem) => {
+    console.log('Saving item', newItem);
+    setShowAddItem(false);
+  };
+  const handleDeleteItem = () => {
+    console.log('Deleting item');
+    setShowDelete(false);
+  };
+  const handleEditItemSave = (newQuantity: number) => {
+    console.log(`Editing item ${FAKE_ITEM.itemName} to ${newQuantity}`);
+    setShowEdit(false);
+  };
+  const handleExportData = (date: Date | null, range: DateRangeValue) => {
+    console.log('Exporting data', { date, range });
+    setShowExport(false);
+  };
 
   return (
-    <>
-        <div>
-            <a href="https://vite.dev" target="_blank">
-                <img src={viteLogo} className="logo" alt="Vite logo" />
-            </a>
-            <a href="https://react.dev" target="_blank">
-                <img src={reactLogo} className="logo react" alt="React logo" />
-            </a>
-        </div>
-        <h1>Vite + React</h1>
-        <div className="card">
-            <button onClick={() => setCount((count) => count + 1)}>
-                count is {count}
-            </button>
-            <p>
-                Edit <code>src/App.tsx</code> and save to test HMR
-            </p>
-        </div>
-        <p className="read-the-docs">
-            Click on the Vite and React logos to learn more
-        </p>
-    </>
+    <Container fluid className="my-4">
+      <h1>ITAMS Dashboard Component Testing</h1>
+
+      <h2>Modal Test Buttons</h2>
+      <div className="d-flex flex-row gap-2 mb-5 justify-content-center">
+        <Button variant="primary" onClick={() => setShowAddItem(true)}>
+          Add New Item
+        </Button>
+        <Button variant="success" onClick={() => setShowAddEmail(true)}>
+          Add Email
+        </Button>
+        <Button variant="warning" onClick={() => setShowEdit(true)}>
+          Edit Item
+        </Button>
+        <Button variant="danger" onClick={() => setShowDelete(true)}>
+          Delete Item
+        </Button>
+        <Button variant="secondary" onClick={() => setShowExport(true)}>
+          Export Data
+        </Button>
+      </div>
+
+      <h2>Charts</h2>
+      <ActivityChart></ActivityChart>
+      <StockLevelsChart />
+
+      <AddEmailModal
+        show={showAddEmail}
+        onCancel={() => setShowAddEmail(false)}
+        onSave={handleAddEmailSave}
+      />
+      <AddItemModal
+        show={showAddItem}
+        onCancel={() => setShowAddItem(false)}
+        onSave={handleAddItemSave}
+        existingCategories={FAKE_CATEGORIES}
+      />
+      <DeleteConfirmationModal
+        show={showDelete}
+        onCancel={() => setShowDelete(false)}
+        onDelete={handleDeleteItem}
+        itemName="Test Item"
+      />
+      <EditItemModal
+        show={showEdit}
+        onCancel={() => setShowEdit(false)}
+        onSave={handleEditItemSave}
+        itemName={FAKE_ITEM.itemName}
+        currentQuantity={FAKE_ITEM.quantity}
+        itemUnits={FAKE_ITEM.units}
+      />
+      <ExportDataModal
+        show={showExport}
+        onCancel={() => setShowExport(false)}
+        onExport={handleExportData}
+      />
+    </Container>
   );
 }
-
 export default App;
