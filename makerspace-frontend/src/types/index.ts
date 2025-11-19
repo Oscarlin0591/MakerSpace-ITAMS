@@ -31,21 +31,21 @@ export type NewItem = {
 export type User = {
   username: string;
   hash: string;
-  is_admin: Boolean;
-}
+  is_admin: boolean;
+};
 
 export type ItemTransaction = {
   transactionId: number;
   itemId: number;
   quantityChanged: number;
-}
+};
 
 export type Transaction = {
   transactionId: number;
   transactionSystem: string;
   timestamp: Date;
-}
+};
 
 export type NotificationRecipient = {
   email: string;
-}
+};
