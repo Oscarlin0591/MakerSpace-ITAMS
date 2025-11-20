@@ -71,7 +71,7 @@ function StockLevelsChart() {
 
   return (
     <>
-      <h1>Jeans Stock Levels</h1>
+      <h1>Stock Levels</h1>
       <ResponsiveContainer width="100%" aspect={1.618} maxHeight={500}>
         <BarChart
           data={data}

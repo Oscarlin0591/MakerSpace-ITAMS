@@ -5,6 +5,7 @@ import './Dashboard.css';
 import Logo from './assets/Logo.svg';
 import StockLevelsChart from './features/StockLevelsChart';
 import { ActivityChart } from './features/StorageActivityChart';
+import { Link } from 'react-router-dom';
 
 // routing not used in this file; keep Dashboard focused on charts
 
@@ -25,11 +26,11 @@ export function Dashboard() {
                 </div>
 
                 <nav className="dashboard-links">
-                    <a href="#">Home</a>
-                    <a href="#">Notifications</a>
+                    <Link to="/">Home</Link>
+                    <Link to="#">Notifications</Link>
+                    <Link to="/manage-inventory">Manage Inventory</Link>
 
-                    {/* navigation (routes are handled elsewhere) */}
-                    <a href="#">Logout</a>
+                    <Link to="#">Logout</Link>
                 </nav>
             </header>
 

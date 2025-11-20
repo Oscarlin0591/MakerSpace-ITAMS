@@ -11,6 +11,7 @@ import ExportDataModal, {
 import type { Category, NewItem } from './types';
 import { Button, Container } from 'react-bootstrap';
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Dashboard } from './Dashboard';
 import { ManageInventory } from './ManageInventory';
 
@@ -58,63 +59,74 @@ function App() {
   };
 
   return (
-    <Container fluid className="my-4">
-      <h1>ITAMS Dashboard Component Testing</h1>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/manage-inventory" element={<ManageInventory />} />
+        <Route path="/home" element={<Dashboard />} />
 
-      <h2>Modal Test Buttons</h2>
-      <div className="d-flex flex-row gap-2 mb-5 justify-content-center">
-        <Button variant="primary" onClick={() => setShowAddItem(true)}>
-          Add New Item
-        </Button>
-        <Button variant="success" onClick={() => setShowAddEmail(true)}>
-          Add Email
-        </Button>
-        <Button variant="warning" onClick={() => setShowEdit(true)}>
-          Edit Item
-        </Button>
-        <Button variant="danger" onClick={() => setShowDelete(true)}>
-          Delete Item
-        </Button>
-        <Button variant="secondary" onClick={() => setShowExport(true)}>
-          Export Data
-        </Button>
-      </div>
+        <Route
+          path="/"
+          element={
+            <Container fluid className="my-4">
+              <h1>ITAMS Dashboard Component Testing</h1>
 
-      <h2></h2>
-      <Dashboard></Dashboard>
-      <ManageInventory></ManageInventory>
+              <h2>Modal Test Buttons</h2>
+              <div className="d-flex flex-row gap-2 mb-5 justify-content-center">
+                <Button variant="primary" onClick={() => setShowAddItem(true)}>
+                  Add New Item
+                </Button>
+                <Button variant="success" onClick={() => setShowAddEmail(true)}>
+                  Add Email
+                </Button>
+                <Button variant="warning" onClick={() => setShowEdit(true)}>
+                  Edit Item
+                </Button>
+                <Button variant="danger" onClick={() => setShowDelete(true)}>
+                  Delete Item
+                </Button>
+                <Button variant="secondary" onClick={() => setShowExport(true)}>
+                  Export Data
+                </Button>
+              </div>
 
-      <AddEmailModal
-        show={showAddEmail}
-        onCancel={() => setShowAddEmail(false)}
-        onSave={handleAddEmailSave}
-      />
-      <AddItemModal
-        show={showAddItem}
-        onCancel={() => setShowAddItem(false)}
-        onSave={handleAddItemSave}
-        existingCategories={FAKE_CATEGORIES}
-      />
-      <DeleteConfirmationModal
-        show={showDelete}
-        onCancel={() => setShowDelete(false)}
-        onDelete={handleDeleteItem}
-        itemName="Test Item"
-      />
-      <EditItemModal
-        show={showEdit}
-        onCancel={() => setShowEdit(false)}
-        onSave={handleEditItemSave}
-        itemName={FAKE_ITEM.itemName}
-        currentQuantity={FAKE_ITEM.quantity}
-        itemUnits={FAKE_ITEM.units}
-      />
-      <ExportDataModal
-        show={showExport}
-        onCancel={() => setShowExport(false)}
-        onExport={handleExportData}
-      />
-    </Container>
+              <h2></h2>
+              <Dashboard></Dashboard>
+
+              <AddEmailModal
+                show={showAddEmail}
+                onCancel={() => setShowAddEmail(false)}
+                onSave={handleAddEmailSave}
+              />
+              <AddItemModal
+                show={showAddItem}
+                onCancel={() => setShowAddItem(false)}
+                onSave={handleAddItemSave}
+                existingCategories={FAKE_CATEGORIES}
+              />
+              <DeleteConfirmationModal
+                show={showDelete}
+                onCancel={() => setShowDelete(false)}
+                onDelete={handleDeleteItem}
+                itemName="Test Item"
+              />
+              <EditItemModal
+                show={showEdit}
+                onCancel={() => setShowEdit(false)}
+                onSave={handleEditItemSave}
+                itemName={FAKE_ITEM.itemName}
+                currentQuantity={FAKE_ITEM.quantity}
+                itemUnits={FAKE_ITEM.units}
+              />
+              <ExportDataModal
+                show={showExport}
+                onCancel={() => setShowExport(false)}
+                onExport={handleExportData}
+              />
+            </Container>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 export default App;
