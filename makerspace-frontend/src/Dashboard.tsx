@@ -29,8 +29,7 @@ export function Dashboard() {
                     <Link to="/home">Home</Link>
                     <Link to="/mailing-list">Notifications</Link>
                     <Link to="/manage-inventory">Manage Inventory</Link>
-
-                    <Link to="/">Logout</Link>
+                    <Link to="/logout">Logout</Link>
                 </nav>
             </header>
 

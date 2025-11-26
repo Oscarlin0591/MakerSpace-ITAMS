@@ -10,14 +10,15 @@ import ExportDataModal, {
 } from './components/ExportDataModal';
 import type { Category, NewItem } from './types';
 import { Button, Container } from 'react-bootstrap';
-import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import {useEffect, useState} from 'react';
+import {BrowserRouter, Routes, Route, Navigate, useNavigate} from 'react-router-dom';
 import { Dashboard } from './Dashboard';
 import { ManageInventory } from './ManageInventory';
 import Login from './Login';
 import MailingList from './MailingList';
 import type { JSX } from "react/jsx-runtime";
 import { useCookies } from 'react-cookie';
+import LogOut from "./LogOut.tsx";
 
 const FAKE_CATEGORIES: Category[] = [
     {categoryID: 1, categoryName: 'Wood', units: 'pcs'},
@@ -80,7 +81,7 @@ function App() {
 
     function logOut() {
         removeCookie("loggedIn");
-        }
+    }
 
   return (
     <BrowserRouter>
@@ -88,7 +89,8 @@ function App() {
         <Route path="/manage-inventory" element={checkForAuthentication(<ManageInventory />)} />
         <Route path="/home" element={checkForAuthentication(<Dashboard />)} />
         <Route path="/" element={cookies.loggedIn ? <Navigate to="/home" /> : <Login setIsLoggedIn={logIn} />} />
-        <Route path="/mailing-list" element={checkForAuthentication(<MailingList />)} />
+        <Route path="/mailing-list" element={checkForAuthentication(<MailingList/>)} />
+        <Route path="/logout" element={checkForAuthentication(<LogOut logOut={logOut}/>)} />
 
         <Route
           path="/test"
