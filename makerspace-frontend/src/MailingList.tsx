@@ -1,17 +1,16 @@
 import "./MailingList.css";
 import quinnipacLogo from './assets/Logo.svg'
 import email_symbol from './assets/mail.svg'
-import edit_symbol from './assets/edit.svg'
 import delete_symbol from './assets/delete.svg'
-import {useState} from "react";
+import {type ReactNode, useState} from "react";
 import AddEmailModal from "./components/AddEmailModal.tsx";
 
 function MailingList() {
     const [emails, setEmails] = useState(["example@email.com", "johndoe@gmail.com"]);
     const [show, setShow] = useState(false);
 
-    const addEmail = (email: string) => {
-        const newEmails = emails;
+    function addEmail (email: string): void {
+        const newEmails: string[] = emails;
         newEmails.push(email);
         setEmails(newEmails)
     }
@@ -44,14 +43,13 @@ function MailingList() {
             <div className="bottom">
                 
                 <h2 className="header">Email</h2>
-                <button className="add-email" onClick={() => setShow(true)}>+Add Email</button>
+                <button className="add-email" onClick={(): void => setShow(true)}>+Add Email</button>
                 <div className="emails">
-                    {emails.map((email: string) => {return (
+                    {emails.map((email: string): ReactNode => {return (
                         <div className="email-box">
                             <img className="email" src={email_symbol}/>
                             <div className="address-box">
                                 <h2>{email}</h2>
-                                <p>Example Name</p>
                             </div>
                             {/*<img className="edit" src={edit_symbol}/>*/}
                             <img className="delete" src={delete_symbol} onClick={() => setEmails(emails.filter(item => item != email))}/>
@@ -60,7 +58,7 @@ function MailingList() {
                     })}
                 </div>
             </div>
-            <AddEmailModal show={show} onCancel={() => setShow(false)} onSave={function(newEmail: string): void {
+            <AddEmailModal show={show} onCancel={(): void => setShow(false)} onSave={function(newEmail: string): void {
                 setShow(false);
                 addEmail(newEmail);
             } }/>
