@@ -1,10 +1,10 @@
 // Brandon McCrave 11/16/2025 Initial Creation
 import { useEffect, useState } from 'react';
 import './ManageInventory.css';
-import EditItemModal from './components/EditItemModal';
+import EditItemModal from '../components/EditItemModal';
 import { Button } from 'react-bootstrap';
-import { type InventoryItem } from './types';
-import { getItem, getItems } from './service/item_service';
+import { type InventoryItem } from '../types';
+import { getItem, getItems } from '../service/item_service';
 
 // const INVENTORY_ITEMS: Array<InventoryItem> = new Array<InventoryItem>;
 
@@ -17,7 +17,9 @@ import { getItem, getItems } from './service/item_service';
 export function ManageInventory() {
   const [showEdit, setShowEdit] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-  const [INVENTORY_ITEMS, setInventoryItems] = useState<Array<InventoryItem>>([]);
+  const [INVENTORY_ITEMS, setInventoryItems] = useState<Array<InventoryItem>>(
+    []
+  );
 
   useEffect(() => {
     getItems().then((result) => {
@@ -26,7 +28,7 @@ export function ManageInventory() {
 
     //debug for single item
     getItem(1).then((result) => {
-      console.log(result)
+      console.log(result);
     });
   }, []);
 
@@ -43,7 +45,6 @@ export function ManageInventory() {
     setSelectedItem(null);
   };
 
-
   return (
     <div className="manage-inventory-root">
       <header className="manage-inventory-header">
@@ -58,7 +59,10 @@ export function ManageInventory() {
           <a href="/mailing-list" className="mi-nav-link">
             Notifications
           </a>
-          <a href="/manage-inventory" className="mi-nav-link mi-nav-link-active">
+          <a
+            href="/manage-inventory"
+            className="mi-nav-link mi-nav-link-active"
+          >
             Manage Inventory
           </a>
           <a href="/" className="mi-nav-link">
@@ -89,7 +93,7 @@ export function ManageInventory() {
                   &#9660;
                 </button>
 
-                <Button variant="warning" onClick={() => handleEditClick(item)}>
+                <Button variant="primary" onClick={() => handleEditClick(item)}>
                   Edit Item
                 </Button>
               </div>

@@ -83,7 +83,7 @@ function EditItemModal({
         <Button variant="secondary" onClick={onCancel}>
           Cancel
         </Button>
-        <Button variant="warning" onClick={handleSave}>
+        <Button variant="primary" onClick={handleSave}>
           Save
         </Button>
       </Modal.Footer>
