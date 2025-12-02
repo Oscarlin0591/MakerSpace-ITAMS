@@ -38,10 +38,7 @@ function EditItemModal({
   // Data validation
   const numQuantity = parseInt(quantity, 10); // Convert string to int
   const isInvalid =
-    quantity.trim() === '' ||
-    isNaN(numQuantity) ||
-    numQuantity < 0 ||
-    numQuantity > 9999;
+    quantity.trim() === '' || isNaN(numQuantity) || numQuantity < 0 || numQuantity > 9999;
 
   // handle saving
   const handleSave = () => {
@@ -54,7 +51,7 @@ function EditItemModal({
   return (
     <Modal show={show} onHide={onCancel} centered size="sm">
       <Modal.Header closeButton>
-        <Modal.Title>Edit {itemName}</Modal.Title>
+        <Modal.Title>{itemName}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <Form noValidate>

@@ -1,74 +1,79 @@
-import './MailingList.css';
-import quinnipacLogo from '../assets/Logo.svg';
-import email_symbol from '../assets/mail.svg';
-import delete_symbol from '../assets/delete.svg';
-import { type ReactNode, useState } from 'react';
+/**
+ * MailingList.tsx
+ * Mailing List page accessible to admins. Used to add/delete
+ * emails that will receive weekly notifications of
+ * low-stock inventory items
+ */
+
+import { Envelope, Trash3 } from 'react-bootstrap-icons';
+import { type ReactNode, useEffect, useState } from 'react';
 import AddEmailModal from '../components/AddEmailModal.tsx';
+import { Container, ListGroup, Button, Row, Col, Card, Spinner, Alert } from 'react-bootstrap';
 
 function MailingList() {
-  const [emails, setEmails] = useState([
-    'example@email.com',
-    'johndoe@gmail.com',
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [emails, setEmails] = useState<string[]>([
+    'example@quinnipiac.com',
+    'johndoe@quinnipiac.com',
   ]);
   const [show, setShow] = useState(false);
 
+  useEffect(() => {
+    //TODO: Implement fetch, promise, and spinner
+    setLoading(true);
+    setError(null);
+    setLoading(false);
+  }, []);
+
   function addEmail(email: string): void {
-    const newEmails: string[] = emails;
-    newEmails.push(email);
-    setEmails(newEmails);
+    setEmails((prev) => [...prev, email]);
   }
-  // const editEmail = (oldEmail: string, newEmail: string) => {
-  //     const newEmails = emails.filter(email => email !== oldEmail);
-  //     newEmails.push(newEmail);
-  //     setEmails(newEmails)
-  // }
+
+  function removeEmail(emailToRemove: string): void {
+    setEmails((prev) => prev.filter((e) => e !== emailToRemove));
+  }
 
   return (
-    <div className="mailing-list">
-      <div className="top">
-        <img className="logo" src={quinnipacLogo} />
-        <p className="login-text">Mailing List</p>
-      </div>
-      <nav className="dashboard-links d-flex">
-        <a href="/home" className="mi-nav-link">
-          Home
-        </a>
-        <a href="/mailing-list" className="mi-nav-link mi-nav-link-active">
-          Notifications
-        </a>
-        <a href="/manage-inventory" className="mi-nav-link">
-          Manage Inventory
-        </a>
-        <a href="/" className="mi-nav-link">
-          Logout
-        </a>
-      </nav>
-      <div className="bottom">
-        <h2 className="header">Email</h2>
-        <button className="add-email" onClick={(): void => setShow(true)}>
-          +Add Email
-        </button>
-        <div className="emails">
-          {emails.map((email: string): ReactNode => {
-            return (
-              <div className="email-box">
-                <img className="email" src={email_symbol} />
-                <div className="address-box">
-                  <h2>{email}</h2>
-                </div>
-                {/*<img className="edit" src={edit_symbol}/>*/}
-                <img
-                  className="delete"
-                  src={delete_symbol}
-                  onClick={() =>
-                    setEmails(emails.filter((item) => item != email))
-                  }
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
+    <Container className="my-4">
+      <Card>
+        <Card.Header className="card-header d-flex align-items-center">
+          <Row className="align-items-center w-100 m-0">
+            <Col className="p-0">
+              <h4 className="m-0">Mailing List</h4>
+            </Col>
+            <Col className="text-end p-0">
+              <Button size="sm" onClick={(): void => setShow(true)}>
+                + Add Email
+              </Button>
+            </Col>
+          </Row>
+        </Card.Header>
+        <Card.Body>
+          {loading && <Spinner animation="border" role="status" />}
+          {error && <Alert variant="danger">Error: {error}</Alert>}
+          {!loading && !error && (
+            <ListGroup>
+              {emails.map(
+                (email: string): ReactNode => (
+                  <ListGroup.Item
+                    key={email}
+                    className="d-flex justify-content-between align-items-center"
+                  >
+                    <div className="d-flex align-items-center gap-3">
+                      <Envelope />
+                      <div>{email}</div>
+                    </div>
+                    <Trash3 className="clickable" onClick={() => removeEmail(email)} />
+                  </ListGroup.Item>
+                )
+              )}
+            </ListGroup>
+          )}
+        </Card.Body>
+      </Card>
+
       <AddEmailModal
         show={show}
         onCancel={(): void => setShow(false)}
@@ -77,7 +82,7 @@ function MailingList() {
           addEmail(newEmail);
         }}
       />
-    </div>
+    </Container>
   );
 }
 

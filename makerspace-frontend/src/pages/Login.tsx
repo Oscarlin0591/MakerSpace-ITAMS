@@ -1,8 +1,12 @@
+/**
+ * Login.tsx
+ * Login page used to verify username and password as well as
+ * obtain user permissions (Admin, Student)
+ */
+
 import { type SyntheticEvent, useState } from 'react';
-import './Login.css';
-import quinnipacLogo from '../assets/Logo.svg';
 import { useNavigate } from 'react-router-dom';
-import { Button, Form } from 'react-bootstrap';
+import { Button, Form, Container, Row, Col } from 'react-bootstrap';
 
 function Login({ setIsLoggedIn }: { setIsLoggedIn: () => void }) {
   const [errorMessage, setErrorMessage] = useState('');
@@ -20,10 +24,7 @@ function Login({ setIsLoggedIn }: { setIsLoggedIn: () => void }) {
   }
 
   // Placeholder, will be revamped when implementing the backend
-  function validUsernameAndPassword(
-    username: string,
-    password: string
-  ): boolean {
+  function validUsernameAndPassword(username: string, password: string): boolean {
     for (const user of users) {
       if (user.username == username && user.password == password) {
         return true;
@@ -33,34 +34,32 @@ function Login({ setIsLoggedIn }: { setIsLoggedIn: () => void }) {
   }
 
   const users: { username: string; password: string }[] = [
-    { username: 'user@qu.edu', password: 'password' },
+    { username: 'user', password: 'password' },
   ];
 
   return (
-    <div className="login">
-      <div className="top">
-        <img className="logo" src={quinnipacLogo} />
-        <p className="login-text">Login</p>
-      </div>
-      <Form className="bottom" onSubmit={handleLogin}>
-        <Form.Control
-          name="username"
-          className="input-field"
-          type="text"
-          placeholder="Username"
-        />
-        <Form.Control
-          name="password"
-          className="input-field"
-          type="password"
-          placeholder="Password"
-        />
-        <Button type="submit" className="login-button">
-          Login
-        </Button>
-        <p className="error-text">{errorMessage}</p>
-      </Form>
-    </div>
+    <Container
+      className="d-flex align-items-center justify-content-center"
+      style={{ minHeight: '60vh' }}
+    >
+      <Row className="w-100">
+        <Col md={{ span: 4, offset: 4 }}>
+          <h4 className="mb-3">Login</h4>
+          <Form onSubmit={handleLogin}>
+            <Form.Group className="mb-2">
+              <Form.Control name="username" type="text" placeholder="Username" />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Control name="password" type="password" placeholder="Password" />
+            </Form.Group>
+            <Button type="submit" className="w-100">
+              Login
+            </Button>
+            {errorMessage && <p className="text-danger mt-2">{errorMessage}</p>}
+          </Form>
+        </Col>
+      </Row>
+    </Container>
   );
 }
 

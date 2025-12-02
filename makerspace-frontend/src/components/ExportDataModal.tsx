@@ -11,7 +11,7 @@ import { Modal, Button, Form } from 'react-bootstrap';
 import { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import calendarIcon from '../assets/calendar_today.svg';
+import { Calendar } from 'react-bootstrap-icons';
 
 // Options for dropdown menu
 const DATE_RANGE_OPTIONS = [
@@ -58,22 +58,16 @@ function ExportDataModal({ show, onCancel, onExport }: ModalProps) {
     }
 
     const newStartDate = new Date(date);
-    switch (range) {
-      case '7d':
-        newStartDate.setDate(newStartDate.getDate() - 7);
-        break;
-      case '1m':
-        newStartDate.setMonth(newStartDate.getMonth() - 1);
-        break;
-      case '3m':
-        newStartDate.setMonth(newStartDate.getMonth() - 3);
-        break;
-      case '1y':
-        newStartDate.setFullYear(newStartDate.getFullYear() - 1);
-        break;
-      case 'all':
-      default:
-        return null;
+    if (range === '7d') {
+      newStartDate.setDate(newStartDate.getDate() - 7);
+    } else if (range === '1m') {
+      newStartDate.setMonth(newStartDate.getMonth() - 1);
+    } else if (range === '3m') {
+      newStartDate.setMonth(newStartDate.getMonth() - 3);
+    } else if (range === '1y') {
+      newStartDate.setFullYear(newStartDate.getFullYear() - 1);
+    } else {
+      return null;
     }
 
     return newStartDate;
@@ -104,13 +98,7 @@ function ExportDataModal({ show, onCancel, onExport }: ModalProps) {
             <Form.Label>Date</Form.Label>
             <DatePicker
               showIcon
-              icon={
-                <img
-                  src={calendarIcon}
-                  alt="calendar"
-                  style={{ width: '20px', height: '20px' }}
-                />
-              }
+              icon={<Calendar />}
               selected={date}
               onChange={(selectedDate: Date | null) => setDate(selectedDate)}
               className="form-control"

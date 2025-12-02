@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { CartesianGrid, Line, LineChart, XAxis, YAxis} from 'recharts';
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
 
 const data = [
   {
@@ -41,16 +40,19 @@ const data = [
 ];
 
 export function ActivityChart() {
-    return (
+  return (
     <>
-        <h1>Ultimaker Filament Storage Activity</h1>    
-        <LineChart style={{ width: '100%', aspectRatio: 1.618, maxWidth: 800, margin: 'auto' }} responsive data={data}>
+      <LineChart
+        style={{ width: '100%', aspectRatio: 1.618, maxWidth: 800, margin: 'auto' }}
+        responsive
+        data={data}
+      >
         <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
         <XAxis dataKey="name" />
         <YAxis width="auto" />
         <Line type="monotone" dataKey="uv" stroke="#8884d8" />
         <Line type="monotone" dataKey="pv" stroke="#82ca9d" />
-        </LineChart>
+      </LineChart>
     </>
   );
 }

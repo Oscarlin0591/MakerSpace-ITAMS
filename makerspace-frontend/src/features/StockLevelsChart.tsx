@@ -6,16 +6,9 @@
  */
 
 import { useState, useEffect } from 'react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  CartesianGrid,
-} from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from 'recharts';
 // import type { Item } from '../types/index.ts';
-import { Alert, Container, Spinner } from 'react-bootstrap';
+import { Alert, Spinner } from 'react-bootstrap';
 // import { setChartData } from 'recharts/types/state/chartDataSlice';
 
 type ChartData = {
@@ -60,7 +53,6 @@ function StockLevelsChart() {
       },
     ];
 
-    
     setData(fakeChartData); //TODO: set chart data with http response
     setLoading(false);
   }, []);
@@ -93,7 +85,6 @@ function StockLevelsChart() {
 
   return (
     <>
-      <h1>Stock Levels</h1>
       <ResponsiveContainer width="100%" aspect={1.618} maxHeight={500}>
         <BarChart
           data={data}
@@ -107,8 +98,13 @@ function StockLevelsChart() {
           <XAxis dataKey="name" />
           <YAxis />
           <CartesianGrid strokeDasharray={'3 3'} />
-          <Bar dataKey="total" fill="#8884d8" onClick={(e) => {setData(fakeChartData1)}
-          }/>
+          <Bar
+            dataKey="total"
+            fill="#8884d8"
+            onClick={() => {
+              setData(fakeChartData1);
+            }}
+          />
         </BarChart>
       </ResponsiveContainer>
     </>

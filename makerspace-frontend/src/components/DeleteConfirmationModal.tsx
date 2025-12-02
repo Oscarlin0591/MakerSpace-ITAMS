@@ -13,15 +13,8 @@ type ModalProps = {
   onDelete: () => void;
 };
 
-function DeleteConfirmationModal({
-  show,
-  itemName,
-  onCancel,
-  onDelete,
-}: ModalProps) {
+function DeleteConfirmationModal({ show, itemName, onCancel, onDelete }: ModalProps) {
   return (
-    // Uses react-bootstrap Modal component
-    // https://react-bootstrap.netlify.app/docs/components/modal/
     <Modal show={show} onHide={onCancel} centered size="sm">
       <Modal.Header closeButton>
         <Modal.Title>Delete item?</Modal.Title>
