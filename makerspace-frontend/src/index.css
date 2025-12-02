@@ -25,6 +25,8 @@ body {
   background: linear-gradient(90deg, var(--qu-dark), var(--qu-light));
   color: var(--qu-gold) !important;
   font-weight: 600;
+}
+.card-header-tall {
   min-height: 54px !important;
 }
 

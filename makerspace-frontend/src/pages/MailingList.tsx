@@ -9,6 +9,7 @@ import { Envelope, Trash3 } from 'react-bootstrap-icons';
 import { type ReactNode, useEffect, useState } from 'react';
 import AddEmailModal from '../components/AddEmailModal.tsx';
 import { Container, ListGroup, Button, Row, Col, Card, Spinner, Alert } from 'react-bootstrap';
+import { Navigate } from 'react-router-dom';
 
 function MailingList() {
   const [loading, setLoading] = useState(true);
@@ -27,6 +28,14 @@ function MailingList() {
     setLoading(false);
   }, []);
 
+  //TODO: Get user priv from session
+  const isAdmin = true;
+
+  // Re-route non-administrators
+  if (!isAdmin) {
+    return <Navigate to="/home" replace />;
+  }
+
   function addEmail(email: string): void {
     setEmails((prev) => [...prev, email]);
   }
@@ -38,7 +47,7 @@ function MailingList() {
   return (
     <Container className="my-4">
       <Card>
-        <Card.Header className="card-header d-flex align-items-center">
+        <Card.Header className="card-header-tall d-flex align-items-center">
           <Row className="align-items-center w-100 m-0">
             <Col className="p-0">
               <h4 className="m-0">Mailing List</h4>

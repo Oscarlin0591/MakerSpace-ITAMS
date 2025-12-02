@@ -68,7 +68,7 @@ export function ManageInventory() {
   return (
     <Container className="my-4">
       <Card>
-        <Card.Header className="card-header d-flex align-items-center">
+        <Card.Header className="card-header-tall d-flex align-items-center">
           <Row className="align-items-center w-100 m-0">
             <Col className="p-0">
               <h4 className="m-0">Manage Inventory</h4>
