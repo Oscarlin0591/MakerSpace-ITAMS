@@ -1,3 +1,7 @@
+<p align="center">
+  <img alt="logo" src="makerspace-frontend\src\assets\Logo.svg" style="max-width:400px; width:70%;" />
+</p>
+
 # Makerspace Inventory Tracking and Management System (ITAMS)
 
 ## Overview

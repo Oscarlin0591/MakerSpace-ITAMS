@@ -23,12 +23,12 @@ export type InventoryItem = {
 
 export type NewItem = {
   itemName: string;
-  categoryID?: number;
+  categoryID?: number | null;
   categoryName?: string;
-  units?: string;
+  units?: string | null;
   quantity: number;
   lowThreshold: number;
-  color?: string;
+  color?: string | null;
 };
 
 export type User = {

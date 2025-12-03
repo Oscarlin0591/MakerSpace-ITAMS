@@ -33,6 +33,17 @@ function AddItemModal({
   const [customUnits, setCustomUnits] = useState('');
   const [isAddingNew, setIsAddingNew] = useState(false);
 
+  // new item state - consider using this instead of so many methods
+  const [newItem, setItem] = useState<NewItem>({
+    itemName: '',
+    categoryID: null,
+    categoryName: '',
+    units: '',
+    quantity: 0,
+    lowThreshold: 0,
+    color: ''
+  })
+
   //Validation state
   const [validated, setValidated] = useState(false);
 
@@ -104,6 +115,15 @@ function AddItemModal({
       lowThreshold: numThreshold,
       ...(color && { color }),
     };
+
+    // setItem({
+    //   ...newItem,
+    //   itemName,
+    //   numQuantity,
+    //   numThreshold,
+    //   color
+    // })
+
     if (isAddingNew) {
       newItem.categoryName = customCategory;
       newItem.units = customUnits;

@@ -18,7 +18,6 @@ export async function getItem(id: number | void) : Promise<PostgrestSingleRespon
             itemArray.push(newItem);
         });
         data.data = itemArray;
-        // console.log(data)
         return data;
     }
 }
