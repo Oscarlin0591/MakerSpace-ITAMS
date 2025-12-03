@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Dashboard } from './pages/Dashboard';
 import { ManageInventory } from './pages/ManageInventory.tsx';
 import Login from './pages/Login.tsx';
@@ -30,7 +30,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      <TopNavbar />
+      <NavbarLimiter />
       <Routes>
         <Route path="/manage-inventory" element={checkForAuthentication(<ManageInventory />)} />
         <Route path="/home" element={checkForAuthentication(<Dashboard />)} />
@@ -43,5 +43,12 @@ function App() {
       </Routes>
     </BrowserRouter>
   );
+}
+
+// Hide navbar on the root login route
+function NavbarLimiter() {
+  const location = useLocation();
+  if (location.pathname === '/') return null;
+  return <TopNavbar />;
 }
 export default App;
