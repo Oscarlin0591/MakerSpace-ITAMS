@@ -12,7 +12,7 @@ import { Alert, Button, Card, Col, Container, Row, Spinner } from 'react-bootstr
 import { type Category, type InventoryItem } from '../types';
 import { getItems } from '../service/item_service';
 import AddItemModal from '../components/AddItemModal';
-import { getCategories, getCategory } from '../service/category';
+import { getCategories } from '../service/category';
 
 export function ManageInventory() {
   const [loading, setLoading] = useState(true); // Used for spinner
