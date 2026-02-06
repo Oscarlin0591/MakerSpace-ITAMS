@@ -10,15 +10,16 @@ import { Button, Form, Container, Card, Image } from 'react-bootstrap';
 import Logo from '../assets/Logo.svg';
 import { authenticateUser } from '../service/user_service'
 
-function Login({ setIsLoggedIn }: { setIsLoggedIn: () => void }) {
+function Login({ setToken }: { setToken: (token: string) => void }) {
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
 
   async function handleLogin(event: SyntheticEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     const form: HTMLFormElement = event.currentTarget;
-    if (await authenticateUser(form.username.value, form.password.value)) {
-      setIsLoggedIn();
+    let token = await authenticateUser(form.username.value, form.password.value);
+    if (token) {
+      setToken(token);
       navigate('/home');
     } else {
       setErrorMessage('Invalid username or password.');

@@ -24,5 +24,8 @@ export async function getUser(username: string | void) {
 
 export async function authenticateUser(username: string, password: string): Promise<boolean> {
     const user = await getUser(username);
-    return bcrypt.compare(password, user.data.hash);
+    if (user.data.hash) {
+        return bcrypt.compare(password, user.data.hash);
+    }
+    return false;
 }

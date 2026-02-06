@@ -7,25 +7,28 @@ import TopNavbar from './components/TopNavbar';
 import type { JSX } from 'react/jsx-runtime';
 import { useCookies } from 'react-cookie';
 import LogOut from './LogOut.tsx';
+import { BACKEND_URL} from "./types";
+import axios from "axios";
 
 function App() {
-  const [cookies, setCookie, removeCookie] = useCookies(['loggedIn']);
-
+  const [cookies, setCookie, removeCookie] = useCookies(['token']);
   // Redirects to the login if the user is authenticated.
   function checkForAuthentication(element: JSX.Element) {
-    if (cookies.loggedIn) {
+    if (cookies.token) {
       return element;
     } else {
       return <Navigate to="/" />;
     }
   }
 
-  function logIn() {
-    setCookie('loggedIn', true);
+  function setToken(token: string) {
+    setCookie('token', token);
+    axios.defaults.headers.common['Authorization'] = token;
   }
 
-  function logOut() {
-    removeCookie('loggedIn');
+  function removeToken() {
+    removeCookie('token');
+    axios.defaults.headers.common['Authorization'] = undefined;
   }
 
   return (
@@ -36,10 +39,10 @@ function App() {
         <Route path="/home" element={checkForAuthentication(<Dashboard />)} />
         <Route
           path="/"
-          element={cookies.loggedIn ? <Navigate to="/home" /> : <Login setIsLoggedIn={logIn} />}
+          element={cookies.token ? <Navigate to="/home" /> : <Login setToken={setToken} />}
         />
         <Route path="/mailing-list" element={checkForAuthentication(<MailingList />)} />
-        <Route path="/logout" element={checkForAuthentication(<LogOut logOut={logOut} />)} />
+        <Route path="/logout" element={checkForAuthentication(<LogOut logOut={removeToken} />)} />
       </Routes>
     </BrowserRouter>
   );

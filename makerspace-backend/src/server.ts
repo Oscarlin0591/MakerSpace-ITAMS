@@ -1,15 +1,17 @@
-import express, { type Request, type Response } from "express";
+import express, {type Request, type Response} from "express";
 import cors from "cors";
-import { createClient } from "@supabase/supabase-js";
-import { getItem } from "./router/itemRouter";
+import {createClient} from "@supabase/supabase-js";
+import {getItem} from "./router/itemRouter";
 import fs from "fs";
 import {authenticateUser, getUser} from "./router/userRouter";
-import { getEmail } from "./router/emailRouter";
-import { getCategory } from "./router/categoryRouter";
+import {getEmail} from "./router/emailRouter";
+import {getCategory} from "./router/categoryRouter";
 import bodyParser from "body-parser";
+import jwt from "jsonwebtoken";
 
 const app = express();
 const port = 3000;
+const secretKey = "79rX6Ac$52Da"
 
 // Check if config file exists. If not end the process.
 const configPath = "./src/config.json";
@@ -28,6 +30,38 @@ const main = async () => {
   await initializeServer();
 };
 
+
+function authorizeUser(req, res, next) {
+  const token = req.header('Authorization');
+  if (!token) return res.status(401).json({ message: 'Access denied. No token provided.' });
+  try {
+    jwt.verify(token, secretKey);
+    next();
+  } catch (err) {
+    res.status(400).json({ message: 'Invalid token' });
+  }
+}
+
+
+function authorizeAdmin(req, res, next) {
+  const token = req.header('Authorization');
+  if (!token) return res.status(401).json({ message: 'Access denied. No token provided.' });
+  try {
+    req.user = jwt.verify(token, secretKey);
+    console.log(req.user.isAdmin);
+    if (req.user.isAdmin) {
+      next();
+    }
+    else {
+      res.status(403).json({message: 'Administrator access denied.'});
+    }
+  } catch (err) {
+    console.log("Token was blocked");
+    res.status(400).json({ message: 'Invalid token' });
+  }
+
+}
+
 const initializeServer = async () => {
   app.use(
     cors({
@@ -36,20 +70,36 @@ const initializeServer = async () => {
   );
   app.use(bodyParser.json());
 
-  app.get("/", (_req: Request, res: Response) => {
-    supabase
-      .from("instruments")
-      .select("*")
-      .then((result) => {
-        res.send(result.data);
-      });
-    // res.send('Hello from TS Express!');
-  });
-
   // =============================================================================================================================
   // item routes
 
-  app.get("/items", (_req: Request, res: Response) => {
+  app.post("/authenticate", (req: Request, res: Response) => {
+    try {
+      authenticateUser(req.body.username, req.body.password).then((result) => {
+        if (result) {
+          getUser(req.body.username).then((user) => {
+            const token = jwt.sign({ username: req.body.username, isAdmin: user.data.is_admin }, secretKey, { expiresIn: '24h' });
+            return res.status(200).send(token);
+          })
+        }
+        else {
+          res.status(401).send(false);
+        }
+      });
+    } catch (err) {
+      return res.status(500).json({ error: "Unexpected backend error" });
+    }
+  });
+
+  app.get("/authorized", authorizeUser, (_req: Request, res: Response) => {
+    return res.status(200)
+  });
+
+  app.get("/authorized-admin", authorizeAdmin, (_req: Request, res: Response) => {
+    return res.status(200)
+  });
+
+  app.get("/items", authorizeUser, (_req: Request, res: Response) => {
     try {
       getItem().then((result) => {
         return res.status(200).send(result.data);
@@ -59,7 +109,7 @@ const initializeServer = async () => {
     }
   });
 
-  app.get("/items/:id", (req: Request, res: Response) => {
+  app.get("/items/:id", authorizeUser, (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id, 10);
       getItem(id).then((result) => {
@@ -70,14 +120,14 @@ const initializeServer = async () => {
     }
   });
 
-  app.post("/items", (req: Request) => {
+  app.post("/items", authorizeAdmin, (req: Request, res: Response) => {
     console.log(req);
   })
 
   // =============================================================================================================================
   // user routes
 
-  app.get("/users", (_req: Request, res: Response) => {
+  app.get("/users", authorizeUser, (_req: Request, res: Response) => {
     try {
       getUser().then((result) => {
         return res.status(200).send(result.data);
@@ -87,17 +137,7 @@ const initializeServer = async () => {
     }
   });
 
-  app.post("/authenticate", (req: Request, res: Response) => {
-    try {
-      authenticateUser(req.body.username, req.body.password).then((result) => {
-        return res.status(200).send(result);
-      });
-    } catch (err) {
-      return res.status(500).json({ error: "Unexpected backend error" });
-    }
-  });
-
-  app.get("/users/:id", (req: Request, res: Response) => {
+  app.get("/users/:id", authorizeUser, (req: Request, res: Response) => {
     try {
       const id = req.params.id;
       getUser(id).then((result) => {
@@ -111,7 +151,7 @@ const initializeServer = async () => {
   // =============================================================================================================================
   // notification routes
 
-  app.get("/notifications", (_req: Request, res: Response) => {
+  app.get("/notifications", authorizeUser, (_req: Request, res: Response) => {
     try {
       getEmail().then((result) => {
         return res.status(200).send(result.data);
@@ -124,7 +164,7 @@ const initializeServer = async () => {
   // =============================================================================================================================
   // category routes
 
-  app.get("/category", (_req: Request, res: Response) => {
+  app.get("/category", authorizeUser, (_req: Request, res: Response) => {
     try {
       getCategory().then((result) => {
         return res.status(200).send(result.data);
@@ -134,7 +174,7 @@ const initializeServer = async () => {
     }
   })
 
-  app.get("/category/:id", (req: Request, res: Response) => {
+  app.get("/category/:id", authorizeUser, (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id, 10);
       getCategory(id).then((result) => {
