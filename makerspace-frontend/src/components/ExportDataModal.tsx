@@ -32,10 +32,10 @@ type ModalProps = {
   show: boolean;
   onCancel: () => void;
   onExport: (date: Date | null, range: DateRangeValue) => void;
-  csvData: any[];
+  csvData: unknown[];
 };
 
-function ExportDataModal({ show, onCancel, onExport, csvData }: ModalProps) {
+function ExportDataModal({ show, onCancel, csvData }: ModalProps) {
   const [date, setDate] = useState<Date | null>(null);
   const [range, setRange] = useState<DateRangeValue>('');
 
@@ -48,13 +48,13 @@ function ExportDataModal({ show, onCancel, onExport, csvData }: ModalProps) {
   }, [show]);
 
   // Handle saving date/range
-  const handleExport = () => {
-    //TODO: Improve validation
-    if (!date || !range) return;
-    onExport(date, range);
-  };
+  // const handleExport = () => {
+  //   //TODO: Improve validation
+  //   if (!date || !range) return;
+  //   onExport(date, range);
+  // };
 
-  console.log(csvData)
+  console.log(csvData);
 
   // Function to calculate calendar selection start date based on range
   const getStartDate = () => {
@@ -123,7 +123,11 @@ function ExportDataModal({ show, onCancel, onExport, csvData }: ModalProps) {
           Cancel
         </Button>
         <Button variant="primary">
-          <CSVLink data={csvData} filename={'inventory-data.csv'} className={styles['CSVLink']}>
+          <CSVLink
+            data={csvData as Record<string, unknown>[]}
+            filename={'inventory-data.csv'}
+            className={styles['CSVLink']}
+          >
             Export
           </CSVLink>
         </Button>

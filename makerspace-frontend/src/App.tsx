@@ -7,8 +7,7 @@ import TopNavbar from './components/TopNavbar';
 import type { JSX } from 'react/jsx-runtime';
 import { useCookies } from 'react-cookie';
 import LogOut from './LogOut.tsx';
-import { BACKEND_URL} from "./types";
-import axios from "axios";
+import axios from 'axios';
 
 function App() {
   const [cookies, setCookie, removeCookie] = useCookies(['token']);
