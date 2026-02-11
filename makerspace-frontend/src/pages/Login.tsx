@@ -8,35 +8,23 @@ import { type SyntheticEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Form, Container, Card, Image } from 'react-bootstrap';
 import Logo from '../assets/Logo.svg';
+import { authenticateUser } from '../service/user_service'
 
-function Login({ setIsLoggedIn }: { setIsLoggedIn: () => void }) {
+function Login({ setToken }: { setToken: (token: string) => void }) {
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
 
-  function handleLogin(event: SyntheticEvent<HTMLFormElement>): void {
+  async function handleLogin(event: SyntheticEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     const form: HTMLFormElement = event.currentTarget;
-    if (validUsernameAndPassword(form.username.value, form.password.value)) {
-      setIsLoggedIn();
+    let token = await authenticateUser(form.username.value, form.password.value);
+    if (token) {
+      setToken(token);
       navigate('/home');
     } else {
       setErrorMessage('Invalid username or password.');
     }
   }
-
-  // Placeholder, will be revamped when implementing the backend
-  function validUsernameAndPassword(username: string, password: string): boolean {
-    for (const user of users) {
-      if (user.username == username && user.password == password) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  const users: { username: string; password: string }[] = [
-    { username: 'user', password: 'password' },
-  ];
 
   return (
     <Container

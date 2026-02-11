@@ -9,9 +9,10 @@ import { PencilSquare } from 'react-bootstrap-icons';
 import { useEffect, useState } from 'react';
 import EditItemModal from '../components/EditItemModal';
 import { Alert, Button, Card, Col, Container, Row, Spinner } from 'react-bootstrap';
-import { type InventoryItem } from '../types';
+import { type Category, type InventoryItem } from '../types';
 import { getItems } from '../service/item_service';
 import AddItemModal from '../components/AddItemModal';
+import { getCategories } from '../service/category';
 
 export function ManageInventory() {
   const [loading, setLoading] = useState(true); // Used for spinner
@@ -21,6 +22,7 @@ export function ManageInventory() {
   const [showAdd, setShowAdd] = useState(false); // Show AddItemModal
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [INVENTORY_ITEMS, setInventoryItems] = useState<Array<InventoryItem>>([]);
+  const [CATEGORIES, setCategories] = useState<Array<Category>>([]);
 
   //TODO: Get user priv from session
   const isAdmin = true;
@@ -39,6 +41,13 @@ export function ManageInventory() {
       .finally(() => {
         setLoading(false);
       });
+      
+      getCategories().then((result) => {
+        setCategories(result)
+      })
+      .catch((error) => {
+        setError(error.message);
+      })
   }, []);
 
   // Handle 'edit item' click event
@@ -124,12 +133,15 @@ export function ManageInventory() {
           setSelectedItem(null);
         }}
         onSave={handleAddItemSave}
-        existingCategories={[
-          //TODO: Get actual existing categories
-          { categoryID: 1, categoryName: 'Filament', units: 'kg' },
-          { categoryID: 2, categoryName: 'Vinyl', units: 'pcs' },
-          { categoryID: 3, categoryName: 'Wood', units: 'pcs' },
-        ]}
+        existingCategories={
+          CATEGORIES
+        //   [
+        //   //TODO: Get actual existing categories
+        //   { categoryID: 1, categoryName: 'Filament', units: 'kg' },
+        //   { categoryID: 2, categoryName: 'Vinyl', units: 'pcs' },
+        //   { categoryID: 3, categoryName: 'Wood', units: 'pcs' },
+        // ]
+      }
       />
     </Container>
   );

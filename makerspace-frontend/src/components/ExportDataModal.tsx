@@ -12,6 +12,8 @@ import { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Calendar } from 'react-bootstrap-icons';
+import { CSVLink } from 'react-csv';
+import styles from './ExportDataModal.module.css';
 
 // Options for dropdown menu
 const DATE_RANGE_OPTIONS = [
@@ -30,9 +32,10 @@ type ModalProps = {
   show: boolean;
   onCancel: () => void;
   onExport: (date: Date | null, range: DateRangeValue) => void;
+  csvData: any[];
 };
 
-function ExportDataModal({ show, onCancel, onExport }: ModalProps) {
+function ExportDataModal({ show, onCancel, onExport, csvData }: ModalProps) {
   const [date, setDate] = useState<Date | null>(null);
   const [range, setRange] = useState<DateRangeValue>('');
 
@@ -50,6 +53,8 @@ function ExportDataModal({ show, onCancel, onExport }: ModalProps) {
     if (!date || !range) return;
     onExport(date, range);
   };
+
+  console.log(csvData)
 
   // Function to calculate calendar selection start date based on range
   const getStartDate = () => {
@@ -117,8 +122,10 @@ function ExportDataModal({ show, onCancel, onExport }: ModalProps) {
         <Button variant="secondary" onClick={onCancel}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={handleExport}>
-          Export
+        <Button variant="primary">
+          <CSVLink data={csvData} filename={'inventory-data.csv'} className={styles['CSVLink']}>
+            Export
+          </CSVLink>
         </Button>
       </Modal.Footer>
     </Modal>

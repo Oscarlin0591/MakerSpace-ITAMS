@@ -1,0 +1,8 @@
+.CSVLink {
+    color: white;
+    text-decoration: none;
+}
+
+.CSVLink:hover {
+    color: white;
+}

@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Card, Form, ListGroup, Modal, Button } from 'react-bootstrap';
 import { ActivityChart } from '../features/StorageActivityChart';
-import ExportDataModal from './ExportDataModal';
 
 type InventoryItem = {
   id: string;
@@ -43,7 +42,6 @@ export default function SelectItemCard() {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<InventoryItem | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [showExport, setShowExport] = useState(false);
   const [activitySeries, setActivitySeries] = useState<{ name: string; value: number }[] | undefined>(undefined);
 
   const results = useMemo(() => {
@@ -117,21 +115,8 @@ export default function SelectItemCard() {
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowDetails(false)}>Close</Button>
-          {/* { <Button variant="primary" onClick={() => { setShowExport(true); }}>
-            Export
-          </Button> } */}
         </Modal.Footer>
       </Modal>
-
-      {/* { <ExportDataModal
-        show={showExport}
-        onCancel={() => setShowExport(false)}
-        onExport={(dateRange, rangeType) => {
-      
-          console.log('Export requested for', selected?.name, { dateRange, rangeType });
-          setShowExport(false);
-        }}
-      /> } */}
     </>
   );
 }
