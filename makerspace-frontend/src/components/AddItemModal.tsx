@@ -4,8 +4,8 @@
  * by user to add a new item to the database
  */
 
-import { Modal, Button, Form, InputGroup, Row, Col} from 'react-bootstrap';
-import { useState, useEffect, type ChangeEvent } from 'react';
+import { Modal, Button, Form, InputGroup, Row, Col, type FormControlProps} from 'react-bootstrap';
+import { useState, useEffect, type ChangeEvent, type ChangeEventHandler } from 'react';
 import type { NewCategory, NewItem, Category } from '../types';
 import { postItem } from '../service/item_service';
 
@@ -24,12 +24,6 @@ function AddItemModal({
   onSave,
   existingCategories,
 }: ModalProps) {
-  // Form field states
-  // const [itemName, setItemName] = useState('');
-  // const [quantity, setQuantity] = useState('');
-  // const [lowThreshold, setLowThreshold] = useState('');
-  // const [color, setColor] = useState('');
-
   // Category dropdown states
   const [categorySelection, setCategorySelection] = useState('');
   const [customCategory, setCustomCategory] = useState('');
@@ -67,17 +61,18 @@ function AddItemModal({
   ))
   };
 
+  const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
+    const { name, value} = e.target;
+    setItem((prevData) => (
+      {
+        ...prevData,
+        [name]: value,
+      }
+  ))
+  }
+
   // Clear form method
   const clearForm = () => {
-    // setItemName('');
-    // setQuantity('');
-    // setLowThreshold('');
-    // setColor('');
-    // setCategorySelection('');
-    // setCustomCategory('');
-    // setCustomUnits('');
-    // setIsAddingNew(false);
-    // setValidated(false);
     setItem({
       itemName: '',
       categoryID: null,
@@ -92,7 +87,7 @@ function AddItemModal({
   // Clear modal on open
   useEffect(() => {
     if (show) clearForm();
-    console.log('form cleared');
+    // console.log('form cleared');
   }, [show]);
 
   // Get the selected dropdown category and values needed for display
@@ -140,16 +135,6 @@ function AddItemModal({
       return;
     }
 
-    // Create new item
-    // const newItem: NewItem = {
-    //   itemName: itemName,
-    //   quantity: numQuantity,
-    //   lowThreshold: numThreshold,
-    //   ...(color && { color }),
-    // };
-
-    // setItem(newItem);
-
     if (isAddingNew) {
       newItem.categoryName = customCategory;
       newItem.units = customUnits;
@@ -158,6 +143,8 @@ function AddItemModal({
     }
 
     onSave(newItem);
+
+    console.log(newItem);
 
     postItem(newItem);
   };
@@ -194,14 +181,14 @@ function AddItemModal({
               <Form.Select
                 value={newItem.categoryName}
                 name="categoryName"
-                onChange={handleChange}
+                onChange={handleSelect}
                 required
                 disabled={isAddingNew}
                 isInvalid={validated && !isAddingNew && !categorySelection}
               >
                 <option value="">Select a category...</option>
                 {existingCategories.map((category) => (
-                  <option key={category.categoryID} value={category.categoryID}>
+                  <option key={category.categoryID} value={category.categoryName}>
                     {category.categoryName}
                   </option>
                 ))}

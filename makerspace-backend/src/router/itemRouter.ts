@@ -21,3 +21,22 @@ export async function getItem(id: number | void) : Promise<PostgrestSingleRespon
         return data;
     }
 }
+
+export async function postItem(item: InventoryItem) {
+    const categoryID = () => {switch (item.categoryName) {
+        case ('Filament'):
+            return 1;
+        case ('Wood'):
+            return 2;
+        case ('Vinyl'):
+            return 3;
+        default:
+            return 0;
+    }}
+    const newItem : InventoryItem = new InventoryItem(item.itemID, item.itemName, categoryID(), item.quantity, item.lowThreshold, item.color, item.categoryName);
+    const { data, error } = await supabase.from('inventory_item')
+    .insert({category_id: newItem.categoryID, item_name: newItem.itemName, quantity: newItem.quantity, threshold: newItem.lowThreshold, color: newItem.color})
+    .select().single();
+
+    return {success: !error, data, error};
+}
