@@ -1,7 +1,7 @@
 import express, {type Request, type Response} from "express";
 import cors from "cors";
 import {createClient} from "@supabase/supabase-js";
-import {getItem} from "./router/itemRouter";
+import {getItem, postItem} from "./router/itemRouter";
 import fs from "fs";
 import {authenticateUser, getUser} from "./router/userRouter";
 import {getEmail} from "./router/emailRouter";
@@ -31,7 +31,7 @@ const main = async () => {
 };
 
 
-function authorizeUser(req, res, next) {
+function authorizeUser(req : Request, res : Response, next) {
   const token = req.header('Authorization');
   if (!token) return res.status(401).json({ message: 'Access denied. No token provided.' });
   try {
@@ -43,7 +43,7 @@ function authorizeUser(req, res, next) {
 }
 
 
-function authorizeAdmin(req, res, next) {
+function authorizeAdmin(req : Request, res : Response, next) {
   const token = req.header('Authorization');
   if (!token) return res.status(401).json({ message: 'Access denied. No token provided.' });
   try {
@@ -121,7 +121,13 @@ const initializeServer = async () => {
   });
 
   app.post("/items", authorizeAdmin, (req: Request, res: Response) => {
-    console.log(req);
+    try {
+      const item = req.body.newItem;
+      postItem(item);
+      return res.status(200);
+    } catch (err) {
+      return res.status(500).json( {error: "Unexpected backend error" });
+    }
   })
 
   // =============================================================================================================================

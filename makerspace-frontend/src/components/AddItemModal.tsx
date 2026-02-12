@@ -4,9 +4,9 @@
  * by user to add a new item to the database
  */
 
-import { Modal, Button, Form, InputGroup, Row, Col} from 'react-bootstrap';
+import { Modal, Button, Form, InputGroup, Row, Col } from 'react-bootstrap';
 import { useState, useEffect, type ChangeEvent } from 'react';
-import type { NewCategory, NewItem, Category } from '../types';
+import type { NewItem, Category } from '../types';
 import { postItem } from '../service/item_service';
 
 type ModalProps = {
@@ -16,20 +16,7 @@ type ModalProps = {
   existingCategories: Category[];
 };
 
-
-
-function AddItemModal({
-  show,
-  onCancel,
-  onSave,
-  existingCategories,
-}: ModalProps) {
-  // Form field states
-  // const [itemName, setItemName] = useState('');
-  // const [quantity, setQuantity] = useState('');
-  // const [lowThreshold, setLowThreshold] = useState('');
-  // const [color, setColor] = useState('');
-
+function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps) {
   // Category dropdown states
   const [categorySelection, setCategorySelection] = useState('');
   const [customCategory, setCustomCategory] = useState('');
@@ -44,40 +31,42 @@ function AddItemModal({
     units: '',
     quantity: 0,
     lowThreshold: 0,
-    color: ''
-  })
-
-  // new category state
-  const [category, setCategory] = useState<NewCategory>({
-    categoryName: '',
-    units: ''
-  })
+    color: '',
+  });
 
   //Validation state
   const [validated, setValidated] = useState(false);
 
   // handles modal changes
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value} = e.target;
-    setItem((prevData) => (
-      {
-        ...prevData,
-        [name]: value,
-      }
-  ))
+    const { name, value } = e.target;
+    setItem((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const handleNumberChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const parsed = value === '' ? 0 : parseInt(value, 10);
+    setItem((prevData) => ({
+      ...prevData,
+      [name]: Number.isNaN(parsed) ? 0 : parsed,
+    }));
+  };
+
+  const handleSelectCategory = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setCategorySelection(value);
+    const sel = existingCategories.find((c) => c.categoryID.toString() === value);
+    setItem((prevData) => ({
+      ...prevData,
+      categoryName: sel ? sel.categoryName : '',
+    }));
   };
 
   // Clear form method
   const clearForm = () => {
-    // setItemName('');
-    // setQuantity('');
-    // setLowThreshold('');
-    // setColor('');
-    // setCategorySelection('');
-    // setCustomCategory('');
-    // setCustomUnits('');
-    // setIsAddingNew(false);
-    // setValidated(false);
     setItem({
       itemName: '',
       categoryID: null,
@@ -85,19 +74,24 @@ function AddItemModal({
       units: '',
       quantity: 0,
       lowThreshold: 0,
-      color: ''
-    })
+      color: '',
+    });
+    setCategorySelection('');
+    setCustomCategory('');
+    setCustomUnits('');
+    setIsAddingNew(false);
+    setValidated(false);
   };
 
   // Clear modal on open
   useEffect(() => {
     if (show) clearForm();
-    console.log('form cleared');
+    // console.log('form cleared');
   }, [show]);
 
   // Get the selected dropdown category and values needed for display
   const selectedCategory = existingCategories.find(
-    (category) => category.categoryID.toString() === categorySelection
+    (category) => category.categoryID.toString() === categorySelection,
   );
   let unitsToDisplay = '';
   if (isAddingNew) {
@@ -112,16 +106,12 @@ function AddItemModal({
   // parseInt(quantity, 10);
   const isQuantityInvalid =
     // quantity.trim() === '' ||
-    isNaN(numQuantity) ||
-    numQuantity < 0 ||
-    numQuantity > 9999;
-  const numThreshold = newItem.lowThreshold
+    isNaN(numQuantity) || numQuantity < 0 || numQuantity > 9999;
+  const numThreshold = newItem.lowThreshold;
   // parseInt(lowThreshold, 10);
   const isThresholdInvalid =
     // lowThreshold.trim() === '' ||
-    isNaN(numThreshold) ||
-    numThreshold < 0 ||
-    numThreshold > 9999;
+    isNaN(numThreshold) || numThreshold < 0 || numThreshold > 9999;
   const isExistingCategoryInvalid = !isAddingNew && !newItem.categoryName;
   const isNewCategoryInvalid = isAddingNew && (!customCategory || !customUnits);
 
@@ -140,28 +130,17 @@ function AddItemModal({
       return;
     }
 
-    // Create new item
-    // const newItem: NewItem = {
-    //   itemName: itemName,
-    //   quantity: numQuantity,
-    //   lowThreshold: numThreshold,
-    //   ...(color && { color }),
-    // };
+    const itemToSave: NewItem = {
+      ...newItem,
+      categoryName: isAddingNew ? customCategory : newItem.categoryName,
+      units: isAddingNew ? customUnits : newItem.units,
+      categoryID: isAddingNew ? null : categorySelection ? parseInt(categorySelection, 10) : null,
+    };
 
-    // setItem(newItem);
-
-    if (isAddingNew) {
-      newItem.categoryName = customCategory;
-      newItem.units = customUnits;
-    } else {
-      newItem.categoryID = parseInt(categorySelection, 10);
-    }
-
-    onSave(newItem);
-
-    postItem(newItem);
+    onSave(itemToSave);
+    console.log(itemToSave);
+    postItem(itemToSave);
   };
-
 
   return (
     <Modal show={show} onHide={onCancel} centered size="lg">
@@ -192,16 +171,16 @@ function AddItemModal({
             <Form.Group as={Col} controlId="formCategory">
               <Form.Label>Item Category</Form.Label>
               <Form.Select
-                value={newItem.categoryName}
-                name="categoryName"
-                onChange={handleChange}
+                value={categorySelection}
+                name="categorySelection"
+                onChange={handleSelectCategory}
                 required
                 disabled={isAddingNew}
                 isInvalid={validated && !isAddingNew && !categorySelection}
               >
                 <option value="">Select a category...</option>
                 {existingCategories.map((category) => (
-                  <option key={category.categoryID} value={category.categoryID}>
+                  <option key={category.categoryID} value={category.categoryID.toString()}>
                     {category.categoryName}
                   </option>
                 ))}
@@ -243,9 +222,7 @@ function AddItemModal({
                   required
                   isInvalid={validated && !customUnits}
                 />
-                <Form.Control.Feedback type="invalid">
-                  Please provide units.
-                </Form.Control.Feedback>
+                <Form.Control.Feedback type="invalid">Please provide units.</Form.Control.Feedback>
               </Form.Group>
             </Row>
           )}
@@ -260,16 +237,12 @@ function AddItemModal({
                   name="quantity"
                   min="0"
                   value={newItem.quantity}
-                  onChange={handleChange}
+                  onChange={handleNumberChange}
                   required
                   isInvalid={validated && isQuantityInvalid}
                 />
-                {unitsToDisplay && (
-                  <InputGroup.Text>{unitsToDisplay}</InputGroup.Text>
-                )}
-                <Form.Control.Feedback type="invalid">
-                  Must be 0 or more.
-                </Form.Control.Feedback>
+                {unitsToDisplay && <InputGroup.Text>{unitsToDisplay}</InputGroup.Text>}
+                <Form.Control.Feedback type="invalid">Must be 0 or more.</Form.Control.Feedback>
               </InputGroup>
             </Form.Group>
             <Form.Group as={Col} controlId="formLowThreshold">
@@ -280,16 +253,12 @@ function AddItemModal({
                   name="lowThreshold"
                   min="0"
                   value={newItem.lowThreshold}
-                  onChange={handleChange}
+                  onChange={handleNumberChange}
                   required
                   isInvalid={validated && isThresholdInvalid}
                 />
-                {unitsToDisplay && (
-                  <InputGroup.Text>{unitsToDisplay}</InputGroup.Text>
-                )}
-                <Form.Control.Feedback type="invalid">
-                  Must be 0 or more.
-                </Form.Control.Feedback>
+                {unitsToDisplay && <InputGroup.Text>{unitsToDisplay}</InputGroup.Text>}
+                <Form.Control.Feedback type="invalid">Must be 0 or more.</Form.Control.Feedback>
               </InputGroup>
             </Form.Group>
           </Row>
@@ -300,7 +269,7 @@ function AddItemModal({
             <Form.Control
               type="text"
               name="color"
-              value={newItem.color}
+              value={newItem.color || ''}
               onChange={handleChange}
             />
           </Form.Group>
