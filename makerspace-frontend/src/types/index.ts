@@ -1,4 +1,6 @@
-export const BACKEND_URL = 'http://localhost:3000';
+// Use relative paths in production (works with nginx proxy)
+// Use absolute localhost URL in development
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export type Category = {
   categoryID: number;
