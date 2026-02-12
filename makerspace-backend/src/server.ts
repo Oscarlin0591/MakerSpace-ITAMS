@@ -6,6 +6,7 @@ import fs from "fs";
 import {authenticateUser, getUser} from "./router/userRouter";
 import {getEmail} from "./router/emailRouter";
 import {getCategory} from "./router/categoryRouter";
+import {getTransaction} from "./router/transactionRouter";
 import bodyParser from "body-parser";
 import jwt from "jsonwebtoken";
 
@@ -184,6 +185,30 @@ const initializeServer = async () => {
     try {
       const id = parseInt(req.params.id, 10);
       getCategory(id).then((result) => {
+        return res.status(200).send(result.data);
+      });
+    } catch (err) {
+      return res.status(500).json({ error: "Unexpected backend error" });
+    }
+  });
+
+  // =============================================================================================================================
+  // transaction routes
+
+  app.get("/transactions", authorizeUser, (_req: Request, res: Response) => {
+    try {
+      getTransaction().then((result) => {
+        return res.status(200).send(result.data);
+      });
+    } catch (err) {
+      return res.status(500).json({ error: "Unexpected backend error" });
+    }
+  });
+
+  app.get("/transactions/:id", authorizeUser, (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      getTransaction(id).then((result) => {
         return res.status(200).send(result.data);
       });
     } catch (err) {
