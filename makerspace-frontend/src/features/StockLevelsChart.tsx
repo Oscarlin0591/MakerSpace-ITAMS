@@ -16,10 +16,11 @@ import {
   Tooltip,
   type TooltipContentProps,
 } from 'recharts';
-// import type { Item } from '../types/index.ts';
+import type { InventoryItem } from '../types/index.ts';
 import { Alert, Spinner } from 'react-bootstrap';
 import { ItemDetailModal } from '../components/ItemDetailModal';
-// import { setChartData } from 'recharts/types/state/chartDataSlice';
+import { getItems } from '../service/item_service';
+import { getCategories } from '../service/category';
 
 type ChartData = {
   name: string;
@@ -27,31 +28,6 @@ type ChartData = {
   lowThreshold: number;
   units: string;
   tooltipInfo?: ChartData[];
-};
-
-type ItemVariant = {
-  name: string;
-  total: number;
-  lowThreshold: number;
-  units: string;
-};
-
-const ITEM_VARIANTS: { [key: string]: ItemVariant[] } = {
-  Filament: [
-    { name: 'ABS Filament', total: 30, lowThreshold: 20, units: 'meters' },
-    { name: 'PLA Filament', total: 15, lowThreshold: 20, units: 'meters' },
-    { name: 'SBU Filament', total: 15, lowThreshold: 8, units: 'meters' },
-  ],
-  Vinyl: [
-    { name: 'Red Vinyl', total: 5, lowThreshold: 10, units: 'meters' },
-    { name: 'Blue Vinyl', total: 3, lowThreshold: 10, units: 'meters' },
-    { name: 'Clear Vinyl', total: 2, lowThreshold: 5, units: 'meters' },
-  ],
-  Wood: [
-    { name: 'Pine Wood', total: 12, lowThreshold: 5, units: 'pcs' },
-    { name: 'Oak Wood', total: 5, lowThreshold: 3, units: 'pcs' },
-    { name: 'Plywood', total: 3, lowThreshold: 2, units: 'pcs' },
-  ],
 };
 
 function StockLevelsChart() {
@@ -66,51 +42,69 @@ function StockLevelsChart() {
     setShowModal(true);
   };
 
-  const fakeChartData: ChartData[] = [
-    {
-      name: 'Filament',
-      total: 60,
-      lowThreshold: 20,
-      units: 'kg',
-      tooltipInfo: [
-        { name: 'Makerbot ABS', total: 5, lowThreshold: 6, units: 'kg' },
-        { name: 'Makerbot PLA', total: 3, lowThreshold: 0, units: 'kg' },
-        { name: 'Bambu PETG', total: 4, lowThreshold: 1, units: 'kg' },
-        { name: 'Bambu ABS', total: 2, lowThreshold: 3, units: 'kg' },
-      ],
-    },
-    {
-      name: 'Vinyl',
-      total: 10,
-      lowThreshold: 20,
-      units: 'meters',
-      tooltipInfo: [
-        { name: 'Vynyl White', total: 14, lowThreshold: 3, units: 'rolls' },
-        { name: 'Vynyl Black', total: 9, lowThreshold: 2, units: 'rolls' },
-        { name: 'Vynyl Red', total: 6, lowThreshold: 2, units: 'rolls' },
-        { name: 'Vynyl Gold', total: 1, lowThreshold: 2, units: 'rolls' },
-      ],
-    },
-    {
-      name: 'Wood',
-      total: 20,
-      lowThreshold: 8,
-      units: 'pcs',
-      tooltipInfo: [
-        { name: 'Birch', total: 12, lowThreshold: 4, units: 'pcs' },
-        { name: 'Basswood', total: 20, lowThreshold: 25, units: 'pcs' },
-        { name: 'Walnut', total: 3, lowThreshold: 1, units: 'pcs' },
-      ],
-    },
-  ];
-
-  // Fetch data
   useEffect(() => {
-    setLoading(true);
-    setError(null);
+    const fetchChartData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-    setData(fakeChartData);
-    setLoading(false);
+        // Fetch items and categories from backend
+        const items = await getItems();
+        const categories = await getCategories();
+
+        // Create a map of category ID to category name and units
+        const categoryMap = new Map<number, { name: string; units: string }>();
+        categories.forEach((cat) => {
+          categoryMap.set(cat.categoryID, { name: cat.categoryName, units: cat.units });
+        });
+
+        // Group items by category
+        const groupedByCategory = new Map<string, { total: number; lowThreshold: number; units: string; items: InventoryItem[] }>();
+
+        items.forEach((item: InventoryItem) => {
+          const categoryInfo = categoryMap.get(item.categoryID);
+          if (!categoryInfo) return;
+
+          const categoryName = categoryInfo.name;
+          if (!groupedByCategory.has(categoryName)) {
+            groupedByCategory.set(categoryName, {
+              total: 0,
+              lowThreshold: 0,
+              units: categoryInfo.units,
+              items: [],
+            });
+          }
+
+          const catData = groupedByCategory.get(categoryName)!;
+          catData.total += item.quantity;
+          catData.lowThreshold += item.lowThreshold;
+          catData.items.push(item);
+        });
+
+        // Convert to chart data format
+        const chartData: ChartData[] = Array.from(groupedByCategory.entries()).map(([categoryName, data]) => ({
+          name: categoryName,
+          total: data.total,
+          lowThreshold: data.lowThreshold,
+          units: data.units,
+          tooltipInfo: data.items.map((item) => ({
+            name: item.itemName,
+            total: item.quantity,
+            lowThreshold: item.lowThreshold,
+            units: data.units,
+          })),
+        }));
+
+        setData(chartData);
+      } catch (err) {
+        console.error('Error fetching chart data:', err);
+        setError('Failed to load stock levels');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChartData();
   }, []);
 
   // Loading spinner
@@ -195,7 +189,7 @@ function StockLevelsChart() {
       <ItemDetailModal
         show={showModal}
         itemName={selectedItem}
-        variants={ITEM_VARIANTS[selectedItem] || []}
+        variants={[]}
         onHide={() => setShowModal(false)}
       />
     </>
