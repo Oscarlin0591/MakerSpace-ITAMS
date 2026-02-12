@@ -187,7 +187,7 @@ const initializeServer = async () => {
     try {
       const id = parseInt(req.params.id, 10);
       getCategory(id).then((result) => {
-        return res.status(200).send(result.data);
+        return res.status(200).json(result.data);
       });
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
