@@ -1,6 +1,5 @@
 import axios from 'axios';
-import { type ItemTransaction } from '../types/index';
-import { BACKEND_URL } from '../types/index';
+import { type ItemTransaction, BACKEND_URL } from '../types/index';
 
 export type BackendTransaction = {
   transactionId: number;
