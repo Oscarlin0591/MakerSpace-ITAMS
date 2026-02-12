@@ -1,24 +1,8 @@
-<<<<<<< HEAD
-// Works for both localhost development and production server
-// In production, set VITE_API_URL environment variable, otherwise uses localhost
-const isDevelopment = !import.meta.env.VITE_API_URL;
-export const BACKEND_URL = isDevelopment 
-  ? 'http://localhost:3000' 
-  : import.meta.env.VITE_API_URL;
+// Backend server URL
+export const BACKEND_URL = 'http://localhost:3000';
 
-// Export for backward compatibility
-export const API_BASE_URL = BACKEND_URL;
-=======
-// Use relative paths in production (works with nginx proxy)
-// Use absolute localhost URL in development
-const viteApiUrl = import.meta.env.VITE_API_URL || "/api";
-if (!viteApiUrl) {
-  throw new Error(
-    'Missing environment variable VITE_API_URL. Create makerspace-frontend/.env following the .env.example',
-  );
-}
-export const API_BASE_URL = viteApiUrl;
->>>>>>> 3447f3e71df072fe235a564ce8a58770b03e77f7
+// API endpoints with /api prefix (used by all services)
+export const API_BASE_URL = `${BACKEND_URL}/api`;
 
 export type Category = {
   categoryID: number;
