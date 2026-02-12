@@ -16,22 +16,39 @@ export function Dashboard() {
   const [inventory, setInventory] = useState<Array<InventoryItem>>([]);
 
   useEffect(() => {
-    getItems().then((result) => {
-      setInventory(result)
-    })
-  }, [])
-  
-  const csvData = useMemo(() => [
-    ["Item Id", "Category Id", "Item Name", "Quantity", "Threshold", "Color"],
-    ...inventory.map(item => [
-      `${item.itemID}`,
-      `${item.categoryID}`,
-      item.itemName,
-      `${item.quantity}`,
-      `${item.lowThreshold}`,
-      item.color
-    ])
-  ], [inventory]);
+    getItems()
+      .then((result) => {
+        console.log('Items result:', result);
+        // Ensure result is an array
+        if (Array.isArray(result)) {
+          setInventory(result);
+        } else {
+          console.error('Expected array, got:', typeof result);
+          setInventory([]);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to fetch items:', error);
+        setInventory([]);
+      });
+  }, []);
+
+  const csvData = useMemo(
+    () => [
+      ['Item Id', 'Category Id', 'Item Name', 'Quantity', 'Threshold', 'Color'],
+      ...(Array.isArray(inventory)
+        ? inventory.map((item) => [
+            `${item.itemID}`,
+            `${item.categoryID}`,
+            item.itemName,
+            `${item.quantity}`,
+            `${item.lowThreshold}`,
+            item.color,
+          ])
+        : []),
+    ],
+    [inventory],
+  );
 
   return (
     <Container fluid className="my-4">
@@ -47,7 +64,12 @@ export function Dashboard() {
                   <h6 className="m-0">Stock Levels</h6>
                 </Col>
                 <Col className="text-end p-0">
-                  <Button variant="primary" onClick={() => { setShowExport(true); }}>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      setShowExport(true);
+                    }}
+                  >
                     Export
                   </Button>
                 </Col>

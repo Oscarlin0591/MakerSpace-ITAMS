@@ -30,6 +30,7 @@ dist-ssr
 .env
 .env.*
 !.env.example
+!.env.production
 
 # Vite files
 vite.config.js.timestamp-*

@@ -6,11 +6,18 @@ import MailingList from './pages/MailingList';
 import TopNavbar from './components/TopNavbar';
 import type { JSX } from 'react/jsx-runtime';
 import { useCookies } from 'react-cookie';
+import { useEffect } from 'react';
 import LogOut from './LogOut.tsx';
 import axios from 'axios';
 
 function App() {
   const [cookies, setCookie, removeCookie] = useCookies(['token']);
+  // Ensure axios sends the auth header when app initializes and a cookie exists
+  useEffect(() => {
+    if (cookies.token) {
+      axios.defaults.headers.common['Authorization'] = cookies.token;
+    }
+  }, [cookies.token]);
   // Redirects to the login if the user is authenticated.
   function checkForAuthentication(element: JSX.Element) {
     if (cookies.token) {
