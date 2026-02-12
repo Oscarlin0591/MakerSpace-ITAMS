@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { type InventoryItem, type NewItem } from '../types/index';
-import { BACKEND_URL } from '../types/index';
+import { API_BASE_URL } from '../types/index';
 
 export async function getItems(): Promise<Array<InventoryItem>> {
-  const response = await axios.get(`${BACKEND_URL}/items`);
+  const response = await axios.get(`${API_BASE_URL}/items`);
 
   // console.log(response.data)
   return response.data;
@@ -11,13 +11,13 @@ export async function getItems(): Promise<Array<InventoryItem>> {
 }
 
 export async function getItem(id: number): Promise<InventoryItem> {
-  const response = await axios.get(`${BACKEND_URL}/items/${id}`);
+  const response = await axios.get(`${API_BASE_URL}/items/${id}`);
   return response.data;
 }
 
-export async function postItem(item : NewItem) {
+export async function postItem(item: NewItem) {
   const newItem = await item;
   console.log(newItem);
-  const response = await axios.post(`${BACKEND_URL}/items`, {newItem})
+  const response = await axios.post(`${API_BASE_URL}/items`, { newItem });
   return response.data;
 }
