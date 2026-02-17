@@ -1,5 +1,7 @@
 import axios from 'axios';
-import { type ItemTransaction, API_BASE_URL } from '../types/index';
+import { type ItemTransaction } from '../types/index';
+
+const BACKEND_URL = import.meta.env.REACT_APP_BACKEND_URL || 'http://localhost:3000';
 
 export type BackendTransaction = {
   transactionId: number;
@@ -9,8 +11,8 @@ export type BackendTransaction = {
 
 export async function getTransactions(): Promise<Array<BackendTransaction>> {
   try {
-    const response = await axios.get(`${API_BASE_URL}/transactions`);
-    return Array.isArray(response.data) ? response.data : [];
+    const response = await axios.get(`${BACKEND_URL}/transactions`);
+    return response.data;
   } catch (error) {
     console.error('Error fetching transactions:', error);
     return [];
@@ -19,7 +21,7 @@ export async function getTransactions(): Promise<Array<BackendTransaction>> {
 
 export async function getTransaction(id: number): Promise<BackendTransaction | null> {
   try {
-    const response = await axios.get(`${API_BASE_URL}/transactions/${id}`);
+    const response = await axios.get(`${BACKEND_URL}/transactions/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching transaction:', error);
