@@ -9,6 +9,7 @@ import { useCookies } from 'react-cookie';
 import { useEffect } from 'react';
 import LogOut from './LogOut.tsx';
 import axios from 'axios';
+import Yolo from './pages/Yolo.tsx';
 
 function App() {
   const [cookies, setCookie, removeCookie] = useCookies(['token']);
@@ -49,6 +50,7 @@ function App() {
         />
         <Route path="/mailing-list" element={checkForAuthentication(<MailingList />)} />
         <Route path="/logout" element={checkForAuthentication(<LogOut logOut={removeToken} />)} />
+        <Route path="/yolo" element={checkForAuthentication(<Yolo/>)} />
       </Routes>
     </BrowserRouter>
   );
