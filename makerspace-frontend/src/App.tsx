@@ -1,36 +1,33 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Dashboard } from './pages/Dashboard';
 import { ManageInventory } from './pages/ManageInventory.tsx';
 import Login from './pages/Login.tsx';
 import MailingList from './pages/MailingList';
 import TopNavbar from './components/TopNavbar';
-import type { JSX } from 'react/jsx-runtime';
 import { useCookies } from 'react-cookie';
 import { useEffect } from 'react';
-import LogOut from './LogOut.tsx';
+import LogOut from './components/LogOut.tsx';
 import axios from 'axios';
 import Yolo from './pages/Yolo.tsx';
+import AuthenticateRoute from './components/AuthenticateRoute.tsx';
 
 function App() {
   const [cookies, setCookie, removeCookie] = useCookies(['token']);
+
+  if (cookies.token) {
+    axios.defaults.headers.common['Authorization'] = cookies.token;
+  }
+
   // Ensure axios sends the auth header when app initializes and a cookie exists
   useEffect(() => {
     if (cookies.token) {
       axios.defaults.headers.common['Authorization'] = cookies.token;
     }
   }, [cookies.token]);
-  // Redirects to the login if the user is authenticated.
-  function checkForAuthentication(element: JSX.Element) {
-    if (cookies.token) {
-      return element;
-    } else {
-      return <Navigate to="/" />;
-    }
-  }
 
   function setToken(token: string) {
     setCookie('token', token);
-    axios.defaults.headers.common['Authorization'] = token;
+    axios.defaults.headers.common['Authorization'] = cookies.token;
   }
 
   function removeToken() {
@@ -42,15 +39,15 @@ function App() {
     <BrowserRouter>
       <NavbarLimiter />
       <Routes>
-        <Route path="/manage-inventory" element={checkForAuthentication(<ManageInventory />)} />
-        <Route path="/home" element={checkForAuthentication(<Dashboard />)} />
+        <Route path="/manage-inventory" element={<AuthenticateRoute element={<ManageInventory />} />} />
+        <Route path="/home" element={<AuthenticateRoute element={<Dashboard />}/>} />
         <Route
           path="/"
-          element={cookies.token ? <Navigate to="/home" /> : <Login setToken={setToken} />}
+          element={<Login setToken={setToken} />}
         />
-        <Route path="/mailing-list" element={checkForAuthentication(<MailingList />)} />
-        <Route path="/logout" element={checkForAuthentication(<LogOut logOut={removeToken} />)} />
-        <Route path="/yolo" element={checkForAuthentication(<Yolo/>)} />
+        <Route path="/yolo" element={<AuthenticateRoute element={<Yolo/>} />} />
+        <Route path="/mailing-list" element={<AuthenticateRoute element={<MailingList />}/>} />
+        <Route path="/logout" element={<LogOut logOut={removeToken} />} />
       </Routes>
     </BrowserRouter>
   );

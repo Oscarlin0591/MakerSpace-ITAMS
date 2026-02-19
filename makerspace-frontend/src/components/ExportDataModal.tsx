@@ -54,8 +54,6 @@ function ExportDataModal({ show, onCancel, csvData }: ModalProps) {
   //   onExport(date, range);
   // };
 
-  console.log(csvData);
-
   // Function to calculate calendar selection start date based on range
   const getStartDate = () => {
     if (!date || !range) {

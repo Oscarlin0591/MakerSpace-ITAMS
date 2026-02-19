@@ -28,6 +28,7 @@ export function ManageInventory() {
   const isAdmin = true;
 
   useEffect(() => {
+
     setLoading(true);
     setError(null);
 

@@ -19,6 +19,8 @@ import {
 // import type { Item } from '../types/index.ts';
 import { Alert, Spinner } from 'react-bootstrap';
 import { ItemDetailModal } from '../components/ItemDetailModal';
+import { getItems } from '../service/item_service';
+import { getCategories } from '../service/category';
 // import { setChartData } from 'recharts/types/state/chartDataSlice';
 
 type ChartData = {
@@ -66,51 +68,87 @@ function StockLevelsChart() {
     setShowModal(true);
   };
 
-  const fakeChartData: ChartData[] = [
-    {
-      name: 'Filament',
-      total: 60,
-      lowThreshold: 20,
-      units: 'kg',
-      tooltipInfo: [
-        { name: 'Makerbot ABS', total: 5, lowThreshold: 6, units: 'kg' },
-        { name: 'Makerbot PLA', total: 3, lowThreshold: 0, units: 'kg' },
-        { name: 'Bambu PETG', total: 4, lowThreshold: 1, units: 'kg' },
-        { name: 'Bambu ABS', total: 2, lowThreshold: 3, units: 'kg' },
-      ],
-    },
-    {
-      name: 'Vinyl',
-      total: 10,
-      lowThreshold: 20,
-      units: 'meters',
-      tooltipInfo: [
-        { name: 'Vynyl White', total: 14, lowThreshold: 3, units: 'rolls' },
-        { name: 'Vynyl Black', total: 9, lowThreshold: 2, units: 'rolls' },
-        { name: 'Vynyl Red', total: 6, lowThreshold: 2, units: 'rolls' },
-        { name: 'Vynyl Gold', total: 1, lowThreshold: 2, units: 'rolls' },
-      ],
-    },
-    {
-      name: 'Wood',
-      total: 20,
-      lowThreshold: 8,
-      units: 'pcs',
-      tooltipInfo: [
-        { name: 'Birch', total: 12, lowThreshold: 4, units: 'pcs' },
-        { name: 'Basswood', total: 20, lowThreshold: 25, units: 'pcs' },
-        { name: 'Walnut', total: 3, lowThreshold: 1, units: 'pcs' },
-      ],
-    },
-  ];
+  // const fakeChartData: ChartData[] = [
+  //   {
+  //     name: 'Filament',
+  //     total: 60,
+  //     lowThreshold: 20,
+  //     units: 'kg',
+  //     tooltipInfo: [
+  //       { name: 'Makerbot ABS', total: 5, lowThreshold: 6, units: 'kg' },
+  //       { name: 'Makerbot PLA', total: 3, lowThreshold: 0, units: 'kg' },
+  //       { name: 'Bambu PETG', total: 4, lowThreshold: 1, units: 'kg' },
+  //       { name: 'Bambu ABS', total: 2, lowThreshold: 3, units: 'kg' },
+  //     ],
+  //   },
+  //   {
+  //     name: 'Vinyl',
+  //     total: 10,
+  //     lowThreshold: 20,
+  //     units: 'meters',
+  //     tooltipInfo: [
+  //       { name: 'Vynyl White', total: 14, lowThreshold: 3, units: 'rolls' },
+  //       { name: 'Vynyl Black', total: 9, lowThreshold: 2, units: 'rolls' },
+  //       { name: 'Vynyl Red', total: 6, lowThreshold: 2, units: 'rolls' },
+  //       { name: 'Vynyl Gold', total: 1, lowThreshold: 2, units: 'rolls' },
+  //     ],
+  //   },
+  //   {
+  //     name: 'Wood',
+  //     total: 20,
+  //     lowThreshold: 8,
+  //     units: 'pcs',
+  //     tooltipInfo: [
+  //       { name: 'Birch', total: 12, lowThreshold: 4, units: 'pcs' },
+  //       { name: 'Basswood', total: 20, lowThreshold: 25, units: 'pcs' },
+  //       { name: 'Walnut', total: 3, lowThreshold: 1, units: 'pcs' },
+  //     ],
+  //   },
+  // ];
 
   // Fetch data
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
-    setData(fakeChartData);
-    setLoading(false);
+    async function fetchData() {
+      try {
+        const [items, categories] = await Promise.all([getItems(), getCategories()]);
+
+        // Aggregate totals by category
+        const categoryMap: { [key: number]: { name: string; units: string; items: any[] } } = {};
+        categories.forEach((cat: any) => {
+          categoryMap[cat.categoryID] = { name: cat.categoryName, units: cat.units || 'units', items: [] };
+        });
+
+        items.forEach((it: any) => {
+          const entry = categoryMap[it.categoryID] || { name: 'Uncategorized', units: 'units', items: [] };
+          entry.items.push(it);
+          categoryMap[it.categoryID] = entry;
+        });
+
+        const chartData: ChartData[] = Object.values(categoryMap).map((c) => ({
+          name: c.name,
+          total: c.items.reduce((s: number, it: any) => s + (it.quantity || 0), 0),
+          lowThreshold: c.items.reduce((s: number, it: any) => s + (it.lowThreshold || 0), 0),
+          units: c.units,
+          tooltipInfo: c.items.map((it: any) => ({ name: it.itemName, total: it.quantity, lowThreshold: it.lowThreshold, units: c.units })),
+        }));
+
+        if (!cancelled) setData(chartData);
+      } catch (err: any) {
+        if (!cancelled) setError(String(err?.message || err));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchData();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Loading spinner

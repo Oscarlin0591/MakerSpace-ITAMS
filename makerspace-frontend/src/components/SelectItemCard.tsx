@@ -1,59 +1,68 @@
-import { useMemo, useState } from 'react';
-import { Card, Form, ListGroup, Modal, Button } from 'react-bootstrap';
+import { useMemo, useState, useEffect } from 'react';
+import { Card, Form, ListGroup, Modal, Button, Spinner } from 'react-bootstrap';
 import { ActivityChart } from '../features/StorageActivityChart';
+import { getItems } from '../service/item_service';
+import type { InventoryItem } from '../types/index';
 
-type InventoryItem = {
-  id: string;
-  name: string;
-  category: string;
-  parent?: string;
-  quantity: number;
-  unit?: string;
-  description?: string;
+type SelectItemCardProps = {
+  onItemSelect?: (item: InventoryItem) => void;
 };
 
-const FAKE_INVENTORY: InventoryItem[] = [
-  { id: '1', name: 'PLA - Makerbot', category: 'Filament', parent: 'Filament', quantity: 12, unit: 'kg' },
-  { id: '2', name: 'ABS - Hatchbox', category: 'Filament', parent: 'Filament', quantity: 8, unit: 'kg' },
-  { id: '3', name: 'Oracal 651 - White', category: 'Vinyl', parent: 'Vinyl', quantity: 24, unit: 'sheets' },
-  { id: '4', name: 'Plywood - 1/4in', category: 'Wood', parent: 'Wood', quantity: 10, unit: 'sheets' },
-  { id: '5', name: 'PLA - eSun', category: 'Filament', parent: 'Filament', quantity: 5, unit: 'kg' },
-  { id: '6', name: 'Vinyl - Black', category: 'Vinyl', parent: 'Vinyl', quantity: 15, unit: 'sheets' },
-];
-
-function seededRandom(seed: number) {
-  // simple LCG
-  let s = seed % 2147483647;
-  if (s <= 0) s += 2147483646;
-  return function () {
-    s = (s * 16807) % 2147483647;
-    return (s - 1) / 2147483646;
-  };
-}
-
-function generateActivityDataFor(name: string) {
-  const seed = Array.from(name).reduce((a, c) => a + c.charCodeAt(0), 0);
-  const rnd = seededRandom(seed);
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  return days.map((d) => ({ name: d, value: Math.round(rnd() * 100) }));
-}
-
-export default function SelectItemCard() {
+export default function SelectItemCard({ onItemSelect }: SelectItemCardProps) {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<InventoryItem | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [activitySeries, setActivitySeries] = useState<{ name: string; value: number }[] | undefined>(undefined);
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch items from backend on component mount
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const fetchedItems = await getItems();
+        setItems(fetchedItems);
+      } catch (err) {
+        console.error('Error fetching items:', err);
+        setError('Failed to load items');
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchItems();
+  }, []);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return FAKE_INVENTORY.filter((it) => it.name.toLowerCase().includes(q) || it.category.toLowerCase().includes(q));
-  }, [query]);
+    return items.filter(
+      (it) => it.itemName.toLowerCase().includes(q) || it.categoryID.toString().includes(q)
+    );
+  }, [query, items]);
 
   function handleSelect(item: InventoryItem) {
     setSelected(item);
-    setActivitySeries(generateActivityDataFor(item.name));
     setShowDetails(true);
+    if (onItemSelect) {
+      onItemSelect(item);
+    }
+  }
+
+  if (loading) {
+    return (
+      <Card className="mb-4">
+        <Card.Header className="card-header d-flex align-items-center">
+          <h6 className="m-0">Select Item</h6>
+        </Card.Header>
+        <Card.Body className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
+          <Spinner animation="border" />
+        </Card.Body>
+      </Card>
+    );
   }
 
   return (
@@ -63,6 +72,7 @@ export default function SelectItemCard() {
           <h6 className="m-0">Select Item</h6>
         </Card.Header>
         <Card.Body>
+          {error && <div className="alert alert-danger">{error}</div>}
           <Form.Group>
             <Form.Control
               value={query}
@@ -78,14 +88,17 @@ export default function SelectItemCard() {
           ) : (
             <ListGroup className="mt-3">
               {results.map((r) => (
-                <ListGroup.Item key={r.id} action onClick={() => handleSelect(r)}>
+                <ListGroup.Item key={r.itemID} action onClick={() => handleSelect(r)}>
                   <div className="d-flex justify-content-between">
                     <div>
-                      <strong>{r.name}</strong>
-                      <div className="text-muted small">{r.category} • {r.unit ?? 'units'}</div>
+                      <strong>{r.itemName}</strong>
+                      <div className="text-muted small">{r.categoryName || 'Category'}</div>
                     </div>
                     <div className="text-end">
-                      <div>{r.quantity} {r.unit}</div>
+                      <div>{r.quantity} units</div>
+                      <div className="text-muted small" style={{ fontSize: '0.8em' }}>
+                        Threshold: {r.lowThreshold}
+                      </div>
                     </div>
                   </div>
                 </ListGroup.Item>
@@ -100,21 +113,55 @@ export default function SelectItemCard() {
           <h6 className="m-0">Activity</h6>
         </Card.Header>
         <Card.Body>
-          <ActivityChart series={activitySeries} />
+          {selected ? (
+            <>
+              <h6 className="mb-3">{selected.itemName}</h6>
+              <ActivityChart />
+            </>
+          ) : (
+            <div className="text-muted text-center py-5">Select an item to view activity</div>
+          )}
         </Card.Body>
       </Card>
 
-      <Modal show={showDetails} onHide={() => setShowDetails(false)}>
+      <Modal show={showDetails} onHide={() => setShowDetails(false)} size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>{selected?.name}</Modal.Title>
+          <Modal.Title>{selected?.itemName}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <p><strong>Category:</strong> {selected?.category}</p>
-          <p><strong>Quantity:</strong> {selected?.quantity} {selected?.unit}</p>
-          <p className="text-muted">This is a quick summary with fake/sample data for the selected item.</p>
+          {selected && (
+            <div>
+              <p>
+                <strong>Quantity:</strong> {selected.quantity} units
+              </p>
+              <p>
+                <strong>Low Threshold:</strong> {selected.lowThreshold}
+              </p>
+              <p>
+                <strong>Category ID:</strong> {selected.categoryID}
+              </p>
+              {selected.categoryName && (
+                <p>
+                  <strong>Category Name:</strong> {selected.categoryName}
+                </p>
+              )}
+              {selected.color && (
+                <p>
+                  <strong>Color:</strong> {selected.color}
+                </p>
+              )}
+              {selected.description && (
+                <p>
+                  <strong>Description:</strong> {selected.description}
+                </p>
+              )}
+            </div>
+          )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDetails(false)}>Close</Button>
+          <Button variant="secondary" onClick={() => setShowDetails(false)}>
+            Close
+          </Button>
         </Modal.Footer>
       </Modal>
     </>

@@ -18,17 +18,17 @@ export function Dashboard() {
   useEffect(() => {
     getItems()
       .then((result) => {
-        console.log('Items result:', result);
+        // console.log('Items result:', result);
         // Ensure result is an array
         if (Array.isArray(result)) {
           setInventory(result);
         } else {
-          console.error('Expected array, got:', typeof result);
+          // console.error('Expected array, got:', typeof result);
           setInventory([]);
         }
       })
       .catch((error) => {
-        console.error('Failed to fetch items:', error);
+        // console.error('Failed to fetch items:', error);
         setInventory([]);
       });
   }, []);

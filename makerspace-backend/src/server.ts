@@ -95,11 +95,11 @@ const initializeServer = async () => {
   });
 
   apiRouter.get('/authorized', authorizeUser, (_req: Request, res: Response) => {
-    return res.status(200);
+    return res.status(200).send(true);
   });
 
   apiRouter.get('/authorized-admin', authorizeAdmin, (_req: Request, res: Response) => {
-    return res.status(200);
+    return res.status(200).send(true);
   });
 
   apiRouter.get('/items', authorizeUser, (_req: Request, res: Response) => {
@@ -127,7 +127,7 @@ const initializeServer = async () => {
     try {
       const item = req.body.newItem;
       postItem(item);
-      return res.status(200);
+      return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
@@ -187,7 +187,7 @@ const initializeServer = async () => {
     try {
       const id = parseInt(req.params.id, 10);
       getCategory(id).then((result) => {
-        return res.status(200).send(result.data);
+        return res.status(200).json(result.data);
       });
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });

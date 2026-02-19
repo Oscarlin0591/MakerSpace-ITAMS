@@ -9,7 +9,9 @@ import { Envelope, Trash3 } from 'react-bootstrap-icons';
 import { type ReactNode, useEffect, useState } from 'react';
 import AddEmailModal from '../components/AddEmailModal.tsx';
 import { Container, ListGroup, Button, Row, Col, Card, Spinner, Alert } from 'react-bootstrap';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../types';
+import axios from 'axios';
 
 function MailingList() {
   const [loading, setLoading] = useState(true);
@@ -21,8 +23,18 @@ function MailingList() {
   ]);
   const [show, setShow] = useState(false);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     //TODO: Implement fetch, promise, and spinner
+    axios.get(`${API_BASE_URL}/authorized-admin`).then(
+      function() {
+        console.log("Succeeded")
+      }, function() {
+        console.log("Failed")
+        navigate("/")
+      }
+    )
     setLoading(true);
     setError(null);
     setLoading(false);
