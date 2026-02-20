@@ -56,3 +56,13 @@ export type Transaction = {
 export type NotificationRecipient = {
   email: string;
 };
+
+export type UserContextType = {
+  isAdmin: boolean;
+  isAuthenticated: boolean;
+};
+
+export type AuthResponse = {
+  token: string;
+  isAdmin: boolean;
+};

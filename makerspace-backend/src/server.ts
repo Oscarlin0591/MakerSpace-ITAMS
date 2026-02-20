@@ -108,7 +108,7 @@ const initializeServer = async () => {
         { expiresIn: '24h' },
       );
 
-      return res.status(200).json({ token });
+      return res.status(200).json({ token: token, isAdmin: user.data.is_admin });
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
