@@ -8,6 +8,7 @@ import { useCookies } from 'react-cookie';
 import { useEffect } from 'react';
 import LogOut from './components/LogOut.tsx';
 import axios from 'axios';
+import Yolo from './pages/Yolo.tsx';
 import AuthenticateRoute from './components/AuthenticateRoute.tsx';
 import { UserProvider } from './contexts/user';
 
@@ -55,6 +56,7 @@ function App() {
             path="/manage-inventory"
             element={<AuthenticateRoute element={<ManageInventory />} />}
           />
+          <Route path="/yolo" element={<AuthenticateRoute element={<Yolo />} />} />
 
           {/* Admin Protected Routes */}
           <Route
