@@ -1,8 +1,12 @@
-// Backend server URL
-export const BACKEND_URL = 'http://localhost:3000';
-
-// API endpoints with /api prefix (used by all services)
-export const API_BASE_URL = `${BACKEND_URL}/api`;
+// Use relative paths in production (works with nginx proxy)
+// Use absolute localhost URL in development
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+if (!API_BASE_URL) {
+  throw new Error(
+    'Missing environment variable VITE_API_URL. Create makerspace-frontend/.env following the .env.example',
+  );
+}
+export { API_BASE_URL };
 
 export type Category = {
   categoryID: number;
@@ -55,4 +59,14 @@ export type Transaction = {
 
 export type NotificationRecipient = {
   email: string;
+};
+
+export type UserContextType = {
+  isAdmin: boolean;
+  isAuthenticated: boolean;
+};
+
+export type AuthResponse = {
+  token: string;
+  isAdmin: boolean;
 };

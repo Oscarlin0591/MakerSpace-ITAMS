@@ -1,21 +1,32 @@
 import { type ReactElement, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authorizeUser } from '../service/authorizationService.ts';
+import { useUser } from '../contexts/user';
 
-function AuthenticateRoute({ element }: {element: ReactElement}) {
+type AuthRouteProps = {
+  element: ReactElement;
+  adminOnly?: boolean;
+};
+
+function AuthenticateRoute({ element, adminOnly = false }: AuthRouteProps) {
   const navigate = useNavigate();
+  const { isAuthenticated, isAdmin } = useUser();
+
+  console.log('AuthenticateRoute - isAuthenticated:', isAuthenticated, 'isAdmin:', isAdmin, 'adminOnly:', adminOnly);
 
   useEffect(() => {
-    console.log("requesting")
-    authorizeUser().then(
-      function(authorized) {
-        console.log("authorized", authorized);
-        if (!authorized) {
-          navigate("/");
-        }
-      }
-    )
-  }, []);
+    // Check authentication
+    if (!isAuthenticated) {
+      console.log('Not authenticated. Redirect to login');
+      navigate('/');
+      return;
+    }
+
+    // Check admin privilege for admin page
+    if (adminOnly && !isAdmin) {
+      console.log('Denied access: Admin privilege required');
+      navigate('/home');
+    }
+  }, [isAuthenticated, isAdmin, adminOnly, navigate]);
 
   return element;
 }

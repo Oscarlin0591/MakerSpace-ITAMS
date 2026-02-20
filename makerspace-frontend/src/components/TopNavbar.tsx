@@ -2,10 +2,12 @@ import { Navbar, Nav } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { BoxArrowRight } from 'react-bootstrap-icons';
 import Logo from '../assets/Logo.svg';
+import { useUser } from '../contexts/user';
 
 export default function TopNavbar() {
-  //TODO: Get user priv from session
-  const isAdmin = true;
+  const { isAdmin, isAuthenticated } = useUser();
+
+  if (!isAuthenticated) return null;
 
   return (
     <Navbar expand="lg" sticky="top" data-bs-theme="dark" className="top-navbar px-3">

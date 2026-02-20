@@ -13,6 +13,7 @@ import { type Category, type InventoryItem } from '../types';
 import { getItems } from '../service/item_service';
 import AddItemModal from '../components/AddItemModal';
 import { getCategories } from '../service/category';
+import { useUser } from '../contexts/user';
 
 export function ManageInventory() {
   const [loading, setLoading] = useState(true); // Used for spinner
@@ -24,11 +25,9 @@ export function ManageInventory() {
   const [INVENTORY_ITEMS, setInventoryItems] = useState<Array<InventoryItem>>([]);
   const [CATEGORIES, setCategories] = useState<Array<Category>>([]);
 
-  //TODO: Get user priv from session
-  const isAdmin = true;
+  const { isAdmin } = useUser();
 
   useEffect(() => {
-
     setLoading(true);
     setError(null);
 
@@ -42,13 +41,14 @@ export function ManageInventory() {
       .finally(() => {
         setLoading(false);
       });
-      
-      getCategories().then((result) => {
-        setCategories(result)
+
+    getCategories()
+      .then((result) => {
+        setCategories(result);
       })
       .catch((error) => {
         setError(error.message);
-      })
+      });
   }, []);
 
   // Handle 'edit item' click event
@@ -136,13 +136,13 @@ export function ManageInventory() {
         onSave={handleAddItemSave}
         existingCategories={
           CATEGORIES
-        //   [
-        //   //TODO: Get actual existing categories
-        //   { categoryID: 1, categoryName: 'Filament', units: 'kg' },
-        //   { categoryID: 2, categoryName: 'Vinyl', units: 'pcs' },
-        //   { categoryID: 3, categoryName: 'Wood', units: 'pcs' },
-        // ]
-      }
+          //   [
+          //   //TODO: Get actual existing categories
+          //   { categoryID: 1, categoryName: 'Filament', units: 'kg' },
+          //   { categoryID: 2, categoryName: 'Vinyl', units: 'pcs' },
+          //   { categoryID: 3, categoryName: 'Wood', units: 'pcs' },
+          // ]
+        }
       />
     </Container>
   );

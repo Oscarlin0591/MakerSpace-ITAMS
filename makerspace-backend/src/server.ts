@@ -1,4 +1,4 @@
-import express, { type Request, type Response, type Router } from 'express';
+import express, { type NextFunction, type Request, type Response, type Router } from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
 import { getItem, postItem } from './router/itemRouter';
@@ -8,8 +8,21 @@ import { getEmail } from './router/emailRouter';
 import { getCategory, postCategory } from './router/categoryRouter';
 import bodyParser from 'body-parser';
 import jwt from 'jsonwebtoken';
+import { type JwtUserPayload } from './types/express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+import imageRouter from './router/uploadRouter';
+dotenv.config();
+
+// Extend express request to include nullable user type
+declare global {
+  namespace Express {
+    interface Request {
+      user?: JwtUserPayload;
+    }
+  }
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,8 +36,14 @@ if (!fs.existsSync(configPath)) {
 
 const app = express();
 const apiRouter: Router = express.Router();
-const port = 3000;
-const secretKey = '79rX6Ac$52Da';
+apiRouter.use(imageRouter);
+
+// Check for .env file
+if (!process.env.PORT || !process.env.JWT_SECRET) {
+  throw new Error('Ensure PORT and JWT_SECRET are defined in .env');
+}
+const port = process.env.PORT;
+const jwtSecret = process.env.JWT_SECRET;
 
 const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 const supabase = createClient(config.VITE_SUPABASE_URL, config.VITE_SUPABASE_PUBLISHABLE_KEY);
@@ -33,23 +52,23 @@ const main = async () => {
   await initializeServer();
 };
 
-function authorizeUser(req: Request, res: Response, next) {
+function authorizeUser(req: Request, res: Response, next: NextFunction) {
   const token = req.header('Authorization');
   if (!token) return res.status(401).json({ message: 'Access denied. No token provided.' });
   try {
-    jwt.verify(token, secretKey);
+    jwt.verify(token, jwtSecret);
     next();
   } catch (err) {
     res.status(400).json({ message: 'Invalid token' });
   }
 }
 
-function authorizeAdmin(req: Request, res: Response, next) {
+function authorizeAdmin(req: Request, res: Response, next: NextFunction) {
   const token = req.header('Authorization');
   if (!token) return res.status(401).json({ message: 'Access denied. No token provided.' });
   try {
-    req.user = jwt.verify(token, secretKey);
-    console.log(req.user.isAdmin);
+    const decoded = jwt.verify(token, jwtSecret) as JwtUserPayload;
+    req.user = decoded;
     if (req.user.isAdmin) {
       next();
     } else {
@@ -69,65 +88,67 @@ const initializeServer = async () => {
   );
   app.use(bodyParser.json());
 
-
   // =============================================================================================================================
   // item routes
 
-  apiRouter.post('/authenticate', (req: Request, res: Response) => {
+  apiRouter.post('/authenticate', async (req: Request, res: Response) => {
     try {
-      authenticateUser(req.body.username, req.body.password).then((result) => {
-        if (result) {
-          getUser(req.body.username).then((user) => {
-            const token = jwt.sign(
-              { username: req.body.username, isAdmin: user.data.is_admin },
-              secretKey,
-              { expiresIn: '24h' },
-            );
-            return res.status(200).send(token);
-          });
-        } else {
-          res.status(401).send(false);
-        }
-      });
+      const isValid = await authenticateUser(req.body.username, req.body.password);
+
+      if (!isValid) {
+        return res.status(401).json({ message: 'Invalid Credentials' });
+      }
+
+      const user = await getUser(req.body.username);
+      const token = jwt.sign(
+        {
+          username: user.data.username,
+          isAdmin: user.data.is_admin,
+        },
+        jwtSecret,
+        { expiresIn: '24h' },
+      );
+
+      return res.status(200).json({ token: token, isAdmin: user.data.is_admin });
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
   });
 
-  apiRouter.get('/authorized', authorizeUser, (_req: Request, res: Response) => {
+  apiRouter.get('/authorized', authorizeUser, async (_req: Request, res: Response) => {
     return res.status(200).send(true);
   });
 
-  apiRouter.get('/authorized-admin', authorizeAdmin, (_req: Request, res: Response) => {
+  apiRouter.get('/authorized-admin', authorizeAdmin, async (_req: Request, res: Response) => {
     return res.status(200).send(true);
   });
 
-  apiRouter.get('/items', authorizeUser, (_req: Request, res: Response) => {
+  apiRouter.get('/items', authorizeUser, async (_req: Request, res: Response) => {
     try {
-      getItem().then((result) => {
-        return res.status(200).send(result.data);
-      });
+      const result = await getItem();
+      return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
   });
 
-  apiRouter.get('/items/:id', authorizeUser, (req: Request, res: Response) => {
+  apiRouter.get('/items/:id', authorizeUser, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id, 10);
-      getItem(id).then((result) => {
-        return res.status(200).send(result.data);
-      });
+      const result = await getItem(id);
+      return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
   });
 
-  apiRouter.post('/items', authorizeAdmin, (req: Request, res: Response) => {
+  apiRouter.post('/items', authorizeAdmin, async (req: Request, res: Response) => {
     try {
       const item = req.body.newItem;
-      postItem(item);
-      return res.status(200).send(result.data);
+
+      const createdItem = await postItem(item);
+
+      return res.status(200).json(createdItem);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
@@ -136,22 +157,20 @@ const initializeServer = async () => {
   // =============================================================================================================================
   // user routes
 
-  apiRouter.get('/users', authorizeUser, (_req: Request, res: Response) => {
+  apiRouter.get('/users', authorizeUser, async (_req: Request, res: Response) => {
     try {
-      getUser().then((result) => {
-        return res.status(200).send(result.data);
-      });
+      const result = await getUser();
+      return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
   });
 
-  apiRouter.get('/users/:id', authorizeUser, (req: Request, res: Response) => {
+  apiRouter.get('/users/:id', authorizeUser, async (req: Request, res: Response) => {
     try {
       const id = req.params.id;
-      getUser(id).then((result) => {
-        return res.status(200).send(result.data);
-      });
+      const result = await getUser(id);
+      return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
@@ -160,11 +179,10 @@ const initializeServer = async () => {
   // =============================================================================================================================
   // notification routes
 
-  apiRouter.get('/notifications', authorizeUser, (_req: Request, res: Response) => {
+  apiRouter.get('/notifications', authorizeUser, async (_req: Request, res: Response) => {
     try {
-      getEmail().then((result) => {
-        return res.status(200).send(result.data);
-      });
+      const result = await getEmail();
+      return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
@@ -173,31 +191,29 @@ const initializeServer = async () => {
   // =============================================================================================================================
   // category routes
 
-  apiRouter.get('/category', authorizeUser, (_req: Request, res: Response) => {
+  apiRouter.get('/category', authorizeUser, async (_req: Request, res: Response) => {
     try {
-      getCategory().then((result) => {
-        return res.status(200).send(result.data);
-      });
+      const result = await getCategory();
+      return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
   });
 
-  apiRouter.get('/category/:id', authorizeUser, (req: Request, res: Response) => {
+  apiRouter.get('/category/:id', authorizeUser, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id, 10);
-      getCategory(id).then((result) => {
-        return res.status(200).json(result.data);
-      });
+      const result = await getCategory(id);
+      return res.status(200).json(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
   });
 
-  apiRouter.post('/category', authorizeAdmin, (req: Request, res: Response) => {
+  apiRouter.post('/category', authorizeAdmin, async (req: Request, res: Response) => {
     try {
       const category = req.body.newCategory;
-      postCategory(category);
+      await postCategory(category);
       return res.status(200);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
