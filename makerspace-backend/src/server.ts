@@ -1,10 +1,10 @@
 import express, { type Request, type Response, type Router } from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
-import { getItem, postItem } from './router/itemRouter';
+import { getItem, postItem, putItem, deleteItem } from './router/itemRouter';
 import fs from 'fs';
 import { authenticateUser, getUser } from './router/userRouter';
-import { getEmail } from './router/emailRouter';
+import { getEmail, postEmail, deleteEmail } from './router/emailRouter';
 import { getCategory, postCategory } from './router/categoryRouter';
 import bodyParser from 'body-parser';
 import jwt from 'jsonwebtoken';
@@ -123,11 +123,32 @@ const initializeServer = async () => {
     }
   });
 
-  apiRouter.post('/items', authorizeAdmin, (req: Request, res: Response) => {
+  apiRouter.post('/items', authorizeAdmin, async (req: Request, res: Response) => {
     try {
       const item = req.body.newItem;
-      postItem(item);
+      const result = await postItem(item);
       return res.status(200).send(result.data);
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
+
+  apiRouter.put('/items/:id', authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const item = req.body.item;
+      const result = await putItem(id, item);
+      return res.status(200).send(result.data);
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
+
+  apiRouter.delete('/items/:id', authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const result = await deleteItem(id);
+      return res.status(200).json({ success: result.success });
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
@@ -165,6 +186,26 @@ const initializeServer = async () => {
       getEmail().then((result) => {
         return res.status(200).send(result.data);
       });
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
+
+  apiRouter.post('/notifications', authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+      const email = req.body.email;
+      const result = await postEmail(email);
+      return res.status(200).send(result.data);
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
+
+  apiRouter.delete('/notifications/:email', authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+      const email = decodeURIComponent(req.params.email);
+      const result = await deleteEmail(email);
+      return res.status(200).json({ success: result.success });
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }

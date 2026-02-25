@@ -23,20 +23,44 @@ export async function getItem(id: number | void) : Promise<PostgrestSingleRespon
 }
 
 export async function postItem(item: InventoryItem) {
-    const categoryID = () => {switch (item.categoryName) {
-        case ('Filament'):
-            return 1;
-        case ('Wood'):
-            return 2;
-        case ('Vinyl'):
-            return 3;
-        default:
-            return 0;
-    }}
-    const newItem : InventoryItem = new InventoryItem(item.itemID, item.itemName, categoryID(), item.quantity, item.lowThreshold, item.color, item.categoryName);
+    const catID = item.categoryID ?? (() => {
+        switch (item.categoryName) {
+            case 'Filament': return 1;
+            case 'Wood': return 2;
+            case 'Vinyl': return 3;
+            default: return null;
+        }
+    })();
+    const newItem : InventoryItem = new InventoryItem(item.itemID, item.itemName, catID ?? 0, item.quantity, item.lowThreshold, item.color, item.categoryName);
     const { data, error } = await supabase.from('inventory_item')
-    .insert({category_id: newItem.categoryID, item_name: newItem.itemName, quantity: newItem.quantity, threshold: newItem.lowThreshold, color: newItem.color})
+    .insert({category_id: newItem.categoryID, item_name: newItem.itemName, quantity: newItem.quantity, threshold: newItem.lowThreshold, color: newItem.color ?? null})
     .select().single();
 
     return {success: !error, data, error};
+}
+
+export async function putItem(id: number, item: InventoryItem) {
+    const { data, error } = await supabase
+        .from('inventory_item')
+        .update({
+            category_id: item.categoryID,
+            item_name: item.itemName,
+            quantity: item.quantity,
+            threshold: item.lowThreshold,
+            color: item.color ?? null,
+        })
+        .eq('item_id', id)
+        .select()
+        .single();
+
+    return { success: !error, data, error };
+}
+
+export async function deleteItem(id: number) {
+    const { error } = await supabase
+        .from('inventory_item')
+        .delete()
+        .eq('item_id', id);
+
+    return { success: !error, error };
 }
