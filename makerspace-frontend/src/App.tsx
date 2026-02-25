@@ -10,9 +10,10 @@ import LogOut from './components/LogOut.tsx';
 import axios from 'axios';
 import Yolo from './pages/Yolo.tsx';
 import AuthenticateRoute from './components/AuthenticateRoute.tsx';
+import { UserProvider } from './contexts/user';
 
 function App() {
-  const [cookies, setCookie, removeCookie] = useCookies(['token']);
+  const [cookies, setCookie, removeCookie] = useCookies(['token', 'isAdmin']);
 
   if (cookies.token) {
     axios.defaults.headers.common['Authorization'] = cookies.token;
@@ -25,31 +26,48 @@ function App() {
     }
   }, [cookies.token]);
 
-  function setToken(token: string) {
-    setCookie('token', token);
-    axios.defaults.headers.common['Authorization'] = cookies.token;
+  function setToken(token: string, isAdmin: boolean) {
+    // Accessible on all pages; Allow cookie to exist for 24hrs
+    const options = { path: '/', maxAge: 86400 };
+
+    setCookie('token', token, options);
+    setCookie('isAdmin', isAdmin.toString(), options);
+    axios.defaults.headers.common['Authorization'] = token;
   }
 
   function removeToken() {
-    removeCookie('token');
+    const options = { path: '/' };
+
+    removeCookie('token', options);
+    removeCookie('isAdmin', options);
     axios.defaults.headers.common['Authorization'] = undefined;
   }
 
   return (
-    <BrowserRouter>
-      <NavbarLimiter />
-      <Routes>
-        <Route path="/manage-inventory" element={<AuthenticateRoute element={<ManageInventory />} />} />
-        <Route path="/home" element={<AuthenticateRoute element={<Dashboard />}/>} />
-        <Route
-          path="/"
-          element={<Login setToken={setToken} />}
-        />
-        <Route path="/yolo" element={<AuthenticateRoute element={<Yolo/>} />} />
-        <Route path="/mailing-list" element={<AuthenticateRoute element={<MailingList />}/>} />
-        <Route path="/logout" element={<LogOut logOut={removeToken} />} />
-      </Routes>
-    </BrowserRouter>
+    <UserProvider>
+      <BrowserRouter>
+        <NavbarLimiter />
+        <Routes>
+          <Route path="/" element={<Login setToken={setToken} />} />
+
+          {/* Authenticated User Routes */}
+          <Route path="/home" element={<AuthenticateRoute element={<Dashboard />} />} />
+          <Route
+            path="/manage-inventory"
+            element={<AuthenticateRoute element={<ManageInventory />} />}
+          />
+          <Route path="/yolo" element={<AuthenticateRoute element={<Yolo />} />} />
+
+          {/* Admin Protected Routes */}
+          <Route
+            path="/mailing-list"
+            element={<AuthenticateRoute element={<MailingList />} adminOnly={true} />}
+          />
+
+          <Route path="/logout" element={<LogOut logOut={removeToken} />} />
+        </Routes>
+      </BrowserRouter>
+    </UserProvider>
   );
 }
 

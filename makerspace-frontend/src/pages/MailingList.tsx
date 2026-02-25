@@ -9,7 +9,7 @@ import { Envelope, Trash3 } from 'react-bootstrap-icons';
 import { type ReactNode, useEffect, useState } from 'react';
 import AddEmailModal from '../components/AddEmailModal.tsx';
 import { Container, ListGroup, Button, Row, Col, Card, Spinner, Alert } from 'react-bootstrap';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../types';
 import axios from 'axios';
 import { getEmails, deleteEmail } from '../service/emailRecipient_service';
@@ -40,14 +40,6 @@ function MailingList() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
-
-  //TODO: Get user priv from session
-  const isAdmin = true;
-
-  // Re-route non-administrators
-  if (!isAdmin) {
-    return <Navigate to="/home" replace />;
-  }
 
   function addEmail(email: string): void {
     setEmails((prev) => [...prev, email]);
@@ -98,7 +90,7 @@ function MailingList() {
                     </div>
                     <Trash3 className="clickable" onClick={() => handleDeleteClick(email)} />
                   </ListGroup.Item>
-                )
+                ),
               )}
             </ListGroup>
           )}
