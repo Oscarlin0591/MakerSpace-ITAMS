@@ -6,10 +6,12 @@
 
 import { type SyntheticEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Form, Container, Card, Image } from 'react-bootstrap';
+import { Button, Form, Container, Card, Image, Col } from 'react-bootstrap';
+import Row from 'react-bootstrap/Row';
 import Logo from '../assets/Logo.svg';
 import { authenticateUser } from '../service/user_service';
 import { useUser } from '../contexts/user';
+import { Text } from 'recharts';
 
 function Login({ setToken }: { setToken: (token: string, isAdmin: boolean) => void }) {
   const [errorMessage, setErrorMessage] = useState('');
@@ -45,17 +47,19 @@ function Login({ setToken }: { setToken: (token: string, isAdmin: boolean) => vo
   return (
     <Container
       className="d-flex align-items-center justify-content-center"
-      style={{ minHeight: '70vh' }}
+      style={{ minHeight: '90vh', flexDirection: 'column' }}
     >
       <Card
-        className="p-4 shadow-lg text-center mt-5 border-2"
+        className="p-4 shadow-lg text-center mt-5 border-2 login"
         style={{ maxWidth: '420px', width: '100%' }}
       >
-        <Image src={Logo} alt="Logo" height={72} className="mb-3 mx-auto" />
+        <Container>
+          <Row className="justify-content-center align-items-center">
+            <Col><h1 className="white-text">ITAMS</h1></Col>
+            <Col><Image src={Logo} alt="Logo" height={72} className="mb-3 mx-auto" /></Col>
+          </Row>
+        </Container>
         <Form onSubmit={handleLogin} className="w-100">
-          <h4 className="mb-3" style={{ color: 'var(--brand-deep)' }}>
-            Login
-          </h4>
           <Form.Group className="mb-3">
             <Form.Control name="username" type="text" placeholder="Username" required />
           </Form.Group>
@@ -69,6 +73,7 @@ function Login({ setToken }: { setToken: (token: string, isAdmin: boolean) => vo
           {errorMessage && <p className="text-danger text-center mt-3">{errorMessage}</p>}
         </Form>
       </Card>
+      <Container className="mt-5"><h4>The Makerspace ITAMS project is an automated inventory system that uses a camera and AI designed to track consumables within the Quinnipiac University Maker Space</h4></Container>
     </Container>
   );
 }
