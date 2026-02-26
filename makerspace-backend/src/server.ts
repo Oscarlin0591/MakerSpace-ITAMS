@@ -1,11 +1,12 @@
 import express, { type NextFunction, type Request, type Response, type Router } from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
-import { getItem, postItem } from './router/itemRouter';
+import { getItem, postItem, putItem, deleteItem } from './router/itemRouter';
 import fs from 'fs';
 import { authenticateUser, getUser } from './router/userRouter';
-import { getEmail } from './router/emailRouter';
+import { getEmail, postEmail, deleteEmail } from './router/emailRouter';
 import { getCategory, postCategory } from './router/categoryRouter';
+import { getTransaction } from './router/transactionRouter';
 import bodyParser from 'body-parser';
 import jwt from 'jsonwebtoken';
 import { type JwtUserPayload } from './types/express';
@@ -145,10 +146,29 @@ const initializeServer = async () => {
   apiRouter.post('/items', authorizeAdmin, async (req: Request, res: Response) => {
     try {
       const item = req.body.newItem;
+      const result = await postItem(item);
+      return res.status(200).send(result.data);
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
 
-      const createdItem = await postItem(item);
+  apiRouter.put('/items/:id', authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const item = req.body.item;
+      const result = await putItem(id, item);
+      return res.status(200).send(result.data);
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
 
-      return res.status(200).json(createdItem);
+  apiRouter.delete('/items/:id', authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const result = await deleteItem(id);
+      return res.status(200).json({ success: result.success });
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
@@ -188,6 +208,26 @@ const initializeServer = async () => {
     }
   });
 
+  apiRouter.post('/notifications', authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+      const email = req.body.email;
+      const result = await postEmail(email);
+      return res.status(200).send(result.data);
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
+
+  apiRouter.delete('/notifications/:email', authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+      const email = decodeURIComponent(req.params.email);
+      const result = await deleteEmail(email);
+      return res.status(200).json({ success: result.success });
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
+
   // =============================================================================================================================
   // category routes
 
@@ -220,16 +260,27 @@ const initializeServer = async () => {
     }
   });
 
-  // app.get("/notifications/:email", (req: Request, res: Response) => {
-  //   try {
-  //     const email = new URLSearchParams(req.params).get()
-  //     const user = getEmail(email).then((result) => {
-  //       return res.status(200).send(result.data);
-  //     });
-  //   } catch (err) {
-  //     return res.status(500).json({ error: "Unexpected backend error" });
-  //   }
-  // });
+  // =============================================================================================================================
+  // transaction routes
+
+  apiRouter.get('/transactions', authorizeUser, async (_req: Request, res: Response) => {
+    try {
+      const result = await getTransaction();
+      return res.status(200).send(result.data);
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
+
+  apiRouter.get('/transactions/:id', authorizeUser, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const result = await getTransaction(id);
+      return res.status(200).send(result.data);
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
 
   // Mount API router at /api path
   app.use('/api', apiRouter);

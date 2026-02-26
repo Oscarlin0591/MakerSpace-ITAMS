@@ -3,15 +3,16 @@
  * Home page used to display inventory data and analytics
  */
 import StockLevelsChart from '../features/StockLevelsChart';
-import SelectItemCard from '../components/SelectItemCard';
+import SelectItemCard from '../features/SelectItemCard';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import ExportDataModal from '../components/ExportDataModal';
 import { useEffect, useMemo, useState } from 'react';
 import { type InventoryItem } from '../types';
 import { getItems } from '../service/item_service';
+import { ActivityChart } from '../features/StorageActivityChart';
 
 export function Dashboard() {
-  // const [selected, setSelected] = useState<InventoryItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [inventory, setInventory] = useState<Array<InventoryItem>>([]);
 
@@ -53,7 +54,15 @@ export function Dashboard() {
     <Container fluid className="my-4">
       <Row className="h-100">
         <Col md={4} sm={12}>
-          <SelectItemCard />
+          <SelectItemCard onItemSelect={(item) => setSelectedItem(item)} />
+          <Card>
+            <Card.Header className="card-header d-flex align-items-center">
+              <h6 className="m-0">{`Activity ${selectedItem ? ` - ${selectedItem.itemName}` : ''}`}</h6>
+            </Card.Header>
+            <Card.Body>
+              <ActivityChart selectedItem={selectedItem} />
+            </Card.Body>
+          </Card>
         </Col>
         <Col md={8} sm={12}>
           <Card>
@@ -64,7 +73,7 @@ export function Dashboard() {
                 </Col>
                 <Col className="text-end p-0">
                   <Button
-                    variant="primary"
+                    variant="warning"
                     onClick={() => {
                       setShowExport(true);
                     }}

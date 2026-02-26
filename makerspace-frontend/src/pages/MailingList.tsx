@@ -12,41 +12,50 @@ import { Container, ListGroup, Button, Row, Col, Card, Spinner, Alert } from 're
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../types';
 import axios from 'axios';
+import { getEmails, deleteEmail } from '../service/emailRecipient_service';
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 
 function MailingList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [emails, setEmails] = useState<string[]>([
-    'example@quinnipiac.com',
-    'johndoe@quinnipiac.com',
-  ]);
+  const [emails, setEmails] = useState<string[]>([]);
   const [show, setShow] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [emailToDelete, setEmailToDelete] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    //TODO: Implement fetch, promise, and spinner
     axios.get(`${API_BASE_URL}/authorized-admin`).then(
-      function () {
-        console.log('Succeeded');
-      },
-      function () {
-        console.log('Failed');
-        navigate('/');
-      },
+      function() {console.log("Success")},
+      function() { navigate('/'); }
     );
+
     setLoading(true);
     setError(null);
-    setLoading(false);
+
+    getEmails()
+      .then((result) => setEmails(result))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
   function addEmail(email: string): void {
     setEmails((prev) => [...prev, email]);
   }
 
-  function removeEmail(emailToRemove: string): void {
-    setEmails((prev) => prev.filter((e) => e !== emailToRemove));
+  function handleDeleteClick(email: string): void {
+    setEmailToDelete(email);
+    setShowDelete(true);
+  }
+
+  async function handleConfirmDelete(): Promise<void> {
+    if (!emailToDelete) return;
+    await deleteEmail(emailToDelete);
+    setEmails((prev) => prev.filter((e) => e !== emailToDelete));
+    setShowDelete(false);
+    setEmailToDelete(null);
   }
 
   return (
@@ -79,7 +88,7 @@ function MailingList() {
                       <Envelope />
                       <div>{email}</div>
                     </div>
-                    <Trash3 className="clickable" onClick={() => removeEmail(email)} />
+                    <Trash3 className="clickable" onClick={() => handleDeleteClick(email)} />
                   </ListGroup.Item>
                 ),
               )}
@@ -95,6 +104,16 @@ function MailingList() {
           setShow(false);
           addEmail(newEmail);
         }}
+      />
+
+      <DeleteConfirmationModal
+        show={showDelete}
+        itemName={emailToDelete ?? ''}
+        onCancel={() => {
+          setShowDelete(false);
+          setEmailToDelete(null);
+        }}
+        onDelete={handleConfirmDelete}
       />
     </Container>
   );

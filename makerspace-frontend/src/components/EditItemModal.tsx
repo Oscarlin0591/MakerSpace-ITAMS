@@ -1,87 +1,178 @@
 /**
  * EditItemModal.tsx
- * A modal that will pop up with a form field used
- * to adjust item quantities
+ * A modal that pops up with a full form to edit an existing inventory item.
+ * Submits a PUT request to update the item in the database.
  */
 
-import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
-import { useState, useEffect } from 'react';
+import { Modal, Button, Form, InputGroup, Row, Col } from 'react-bootstrap';
+import { useState, useEffect, type ChangeEvent } from 'react';
+import type { InventoryItem, Category } from '../types';
+import { putItem } from '../service/item_service';
 
 type ModalProps = {
   show: boolean;
   onCancel: () => void;
-  onSave: (newQuantity: number) => void;
-  itemName: string; // Name of item to be edited
-  currentQuantity: number; // Current item quantity
-  itemUnits?: string; // Optional units to be displayed alongside form
+  onSave: (updatedItem: InventoryItem) => void;
+  item: InventoryItem | null;
+  existingCategories: Category[];
 };
 
-function EditItemModal({
-  show,
-  onCancel,
-  onSave,
-  itemName,
-  currentQuantity,
-  itemUnits,
-}: ModalProps) {
-  const [quantity, setQuantity] = useState('');
+function EditItemModal({ show, onCancel, onSave, item, existingCategories }: ModalProps) {
+  const [editedItem, setEditedItem] = useState<InventoryItem | null>(null);
   const [validated, setValidated] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // Update modal on open with current quantity of item
+  // Populate form with the selected item when modal opens
   useEffect(() => {
-    if (show) {
-      setQuantity(String(currentQuantity));
+    if (show && item) {
+      setEditedItem({ ...item });
       setValidated(false);
     }
-  }, [show, currentQuantity]);
+  }, [show, item]);
 
-  // Data validation
-  const numQuantity = parseInt(quantity, 10); // Convert string to int
-  const isInvalid =
-    quantity.trim() === '' || isNaN(numQuantity) || numQuantity < 0 || numQuantity > 9999;
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditedItem((prev) => (prev ? { ...prev, [name]: value } : prev));
+  };
 
-  // handle saving
-  const handleSave = () => {
+  const handleNumberChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const parsed = value === '' ? 0 : parseInt(value, 10);
+    setEditedItem((prev) =>
+      prev ? { ...prev, [name]: Number.isNaN(parsed) ? 0 : parsed } : prev,
+    );
+  };
+
+  const handleSelectCategory = (e: ChangeEvent<HTMLSelectElement>) => {
+    const id = parseInt(e.target.value, 10);
+    setEditedItem((prev) => (prev ? { ...prev, categoryID: id } : prev));
+  };
+
+  if (!editedItem) return null;
+
+  // Validation
+  const isNameInvalid = !editedItem.itemName;
+  const isQuantityInvalid =
+    isNaN(editedItem.quantity) || editedItem.quantity < 0 || editedItem.quantity > 9999;
+  const isThresholdInvalid =
+    isNaN(editedItem.lowThreshold) ||
+    editedItem.lowThreshold < 0 ||
+    editedItem.lowThreshold > 9999;
+  const isCategoryInvalid = !editedItem.categoryID;
+
+  const selectedCategory = existingCategories.find((c) => c.categoryID === editedItem.categoryID);
+
+  const handleSave = async () => {
     setValidated(true);
-    if (isInvalid) return;
+    if (isNameInvalid || isQuantityInvalid || isThresholdInvalid || isCategoryInvalid) return;
 
-    onSave(numQuantity);
+    setSaving(true);
+    try {
+      await putItem(editedItem.itemID, editedItem);
+      onSave(editedItem);
+    } catch (err) {
+      console.error('Failed to update item:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <Modal show={show} onHide={onCancel} centered size="sm">
+    <Modal show={show} onHide={onCancel} centered size="lg">
       <Modal.Header closeButton>
-        <Modal.Title>{itemName}</Modal.Title>
+        <Modal.Title>Edit Item</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <Form noValidate>
-          <Form.Group controlId="formItemQuantity">
-            <Form.Label>New Quantity</Form.Label>
-            <InputGroup>
-              <Form.Control
-                type="number"
-                min="0"
-                max="9999"
-                required
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                autoFocus
-                isInvalid={validated && isInvalid}
-              />
-              {itemUnits && <InputGroup.Text>{itemUnits}</InputGroup.Text>}
-              <Form.Control.Feedback type="invalid">
-                Please provide a valid quantity.
-              </Form.Control.Feedback>
-            </InputGroup>
+          {/* Item Name */}
+          <Form.Group controlId="editItemName" className="mb-3">
+            <Form.Label>Item Name</Form.Label>
+            <Form.Control
+              type="text"
+              name="itemName"
+              value={editedItem.itemName}
+              onChange={handleChange}
+              required
+              autoFocus
+              isInvalid={validated && isNameInvalid}
+            />
+            <Form.Control.Feedback type="invalid">
+              Please provide an item name.
+            </Form.Control.Feedback>
+          </Form.Group>
+
+          {/* Category Dropdown */}
+          <Form.Group controlId="editCategory" className="mb-3">
+            <Form.Label>Category</Form.Label>
+            <Form.Select
+              value={editedItem.categoryID?.toString() ?? ''}
+              onChange={handleSelectCategory}
+              isInvalid={validated && isCategoryInvalid}
+            >
+              <option value="">Select a category...</option>
+              {existingCategories.map((category) => (
+                <option key={category.categoryID} value={category.categoryID.toString()}>
+                  {category.categoryName}
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Control.Feedback type="invalid">Please select a category.</Form.Control.Feedback>
+          </Form.Group>
+
+          {/* Quantity and Low Threshold */}
+          <Row className="mb-3">
+            <Form.Group as={Col} controlId="editQuantity">
+              <Form.Label>Quantity</Form.Label>
+              <InputGroup>
+                <Form.Control
+                  type="number"
+                  name="quantity"
+                  min="0"
+                  value={editedItem.quantity}
+                  onChange={handleNumberChange}
+                  required
+                  isInvalid={validated && isQuantityInvalid}
+                />
+                {selectedCategory && <InputGroup.Text>{selectedCategory.units}</InputGroup.Text>}
+                <Form.Control.Feedback type="invalid">Must be 0 or more.</Form.Control.Feedback>
+              </InputGroup>
+            </Form.Group>
+            <Form.Group as={Col} controlId="editLowThreshold">
+              <Form.Label>Low Threshold</Form.Label>
+              <InputGroup>
+                <Form.Control
+                  type="number"
+                  name="lowThreshold"
+                  min="0"
+                  value={editedItem.lowThreshold}
+                  onChange={handleNumberChange}
+                  required
+                  isInvalid={validated && isThresholdInvalid}
+                />
+                {selectedCategory && <InputGroup.Text>{selectedCategory.units}</InputGroup.Text>}
+                <Form.Control.Feedback type="invalid">Must be 0 or more.</Form.Control.Feedback>
+              </InputGroup>
+            </Form.Group>
+          </Row>
+
+          {/* Optional Color */}
+          <Form.Group controlId="editColor" className="mb-3">
+            <Form.Label>Color (Optional)</Form.Label>
+            <Form.Control
+              type="text"
+              name="color"
+              value={editedItem.color || ''}
+              onChange={handleChange}
+            />
           </Form.Group>
         </Form>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onCancel}>
+        <Button variant="secondary" onClick={onCancel} disabled={saving}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={handleSave}>
-          Save
+        <Button variant="primary" onClick={handleSave} disabled={saving}>
+          {saving ? 'Saving...' : 'Save Changes'}
         </Button>
       </Modal.Footer>
     </Modal>
@@ -89,3 +180,95 @@ function EditItemModal({
 }
 
 export default EditItemModal;
+
+// /**
+//  * EditItemModal.tsx
+//  * A modal that will pop up with a form field used
+//  * to adjust item quantities
+//  */
+
+// import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
+// import { useState, useEffect } from 'react';
+
+// type ModalProps = {
+//   show: boolean;
+//   onCancel: () => void;
+//   onSave: (newQuantity: number) => void;
+//   itemName: string; // Name of item to be edited
+//   currentQuantity: number; // Current item quantity
+//   itemUnits?: string; // Optional units to be displayed alongside form
+// };
+
+// function EditItemModal({
+//   show,
+//   onCancel,
+//   onSave,
+//   itemName,
+//   currentQuantity,
+//   itemUnits,
+// }: ModalProps) {
+//   const [quantity, setQuantity] = useState('');
+//   const [validated, setValidated] = useState(false);
+
+//   // Update modal on open with current quantity of item
+//   useEffect(() => {
+//     if (show) {
+//       setQuantity(String(currentQuantity));
+//       setValidated(false);
+//     }
+//   }, [show, currentQuantity]);
+
+//   // Data validation
+//   const numQuantity = parseInt(quantity, 10); // Convert string to int
+//   const isInvalid =
+//     quantity.trim() === '' || isNaN(numQuantity) || numQuantity < 0 || numQuantity > 9999;
+
+//   // handle saving
+//   const handleSave = () => {
+//     setValidated(true);
+//     if (isInvalid) return;
+
+//     onSave(numQuantity);
+//   };
+
+//   return (
+//     <Modal show={show} onHide={onCancel} centered size="sm">
+//       <Modal.Header closeButton>
+//         <Modal.Title>{itemName}</Modal.Title>
+//       </Modal.Header>
+//       <Modal.Body>
+//         <Form noValidate>
+//           <Form.Group controlId="formItemQuantity">
+//             <Form.Label>New Quantity</Form.Label>
+//             <InputGroup>
+//               <Form.Control
+//                 type="number"
+//                 min="0"
+//                 max="9999"
+//                 required
+//                 value={quantity}
+//                 onChange={(e) => setQuantity(e.target.value)}
+//                 autoFocus
+//                 isInvalid={validated && isInvalid}
+//               />
+//               {itemUnits && <InputGroup.Text>{itemUnits}</InputGroup.Text>}
+//               <Form.Control.Feedback type="invalid">
+//                 Please provide a valid quantity.
+//               </Form.Control.Feedback>
+//             </InputGroup>
+//           </Form.Group>
+//         </Form>
+//       </Modal.Body>
+//       <Modal.Footer>
+//         <Button variant="secondary" onClick={onCancel}>
+//           Cancel
+//         </Button>
+//         <Button variant="primary" onClick={handleSave}>
+//           Save
+//         </Button>
+//       </Modal.Footer>
+//     </Modal>
+//   );
+// }
+
+// export default EditItemModal;

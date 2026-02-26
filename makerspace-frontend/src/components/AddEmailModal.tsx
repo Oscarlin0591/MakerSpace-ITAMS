@@ -6,6 +6,7 @@
 
 import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
 import { useState, useEffect } from 'react';
+import { postEmail } from '../service/emailRecipient_service';
 
 type ModalProps = {
   show: boolean;
@@ -30,12 +31,13 @@ function AddEmailModal({ show, onCancel, onSave }: ModalProps) {
   const isInvalid = !email || email.includes(' ') || email.includes('@');
 
   // Handle saving email
-  const handleSave = () => {
+  const handleSave = async () => {
     setValidated(true);
     if (isInvalid) return;
 
     // Create full email from user input
     const fullEmail = `${email}@Quinnipiac.edu`;
+    await postEmail(fullEmail);
     onSave(fullEmail);
   };
 

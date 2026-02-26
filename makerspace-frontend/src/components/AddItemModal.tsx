@@ -132,7 +132,7 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
   const isNewCategoryInvalid = isAddingNew && (!newCategory.categoryName || !newCategory.units);
 
   // Handle saving
-  const handleSave = () => {
+  const handleSave = async () => {
     setValidated(true);
 
     // Check validations
@@ -158,9 +158,11 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
       units: newCategory.units,
     };
 
-    postCategory(catToSave);
+    if (isAddingNew) {
+      await postCategory(catToSave);
+    }
+    await postItem(itemToSave);
     onSave(itemToSave);
-    postItem(itemToSave);
   };
 
   return (

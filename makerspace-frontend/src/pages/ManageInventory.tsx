@@ -5,12 +5,13 @@
  * to add/delete items that are tracked.
  */
 
-import { PencilSquare } from 'react-bootstrap-icons';
+import { PencilSquare, Trash3 } from 'react-bootstrap-icons';
 import { useEffect, useState } from 'react';
 import EditItemModal from '../components/EditItemModal';
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { Alert, Button, Card, Col, Container, Row, Spinner } from 'react-bootstrap';
 import { type Category, type InventoryItem } from '../types';
-import { getItems } from '../service/item_service';
+import { getItems, deleteItem } from '../service/item_service';
 import AddItemModal from '../components/AddItemModal';
 import { getCategories } from '../service/category';
 import { useUser } from '../contexts/user';
@@ -21,6 +22,7 @@ export function ManageInventory() {
 
   const [showEdit, setShowEdit] = useState(false); // Show EditItemModal
   const [showAdd, setShowAdd] = useState(false); // Show AddItemModal
+  const [showDelete, setShowDelete] = useState(false); // Show DeleteConfirmationModal
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [INVENTORY_ITEMS, setInventoryItems] = useState<Array<InventoryItem>>([]);
   const [CATEGORIES, setCategories] = useState<Array<Category>>([]);
@@ -57,23 +59,46 @@ export function ManageInventory() {
     setShowEdit(true);
   };
 
-  //TODO: Implement saving existing item quantity
-  const handleEditItemSave = (newQuantity: number) => {
-    if (selectedItem) {
-      console.log(`Editing item ${selectedItem.itemName} to ${newQuantity}`);
-    }
+  // Update the edited item in local state without a full page refresh
+  const handleEditItemSave = (updatedItem: InventoryItem) => {
+    setInventoryItems((prev) =>
+      prev.map((item) => (item.itemID === updatedItem.itemID ? updatedItem : item)),
+    );
     setShowEdit(false);
     setSelectedItem(null);
   };
 
-  //TODO: Implement saving new item + category
-  const handleAddItemSave = () => {
-    if (selectedItem) {
-      console.log(`Adding item ${selectedItem.itemName}`);
-    }
-    setShowAdd(false);
+  // Open the delete confirmation modal for the selected item
+  const handleDeleteClick = (item: InventoryItem) => {
+    setSelectedItem(item);
+    setShowDelete(true);
+  };
+
+  // Confirmed delete — call API then remove from local state
+  const handleConfirmDelete = async () => {
+    if (!selectedItem) return;
+    await deleteItem(selectedItem.itemID);
+    setInventoryItems((prev) => prev.filter((i) => i.itemID !== selectedItem.itemID));
+    setShowDelete(false);
     setSelectedItem(null);
   };
+
+  // Re-fetch items from DB after adding so the new item appears immediately
+  const handleAddItemSave = () => {
+    setShowAdd(false);
+    setSelectedItem(null);
+    getItems().then((result) => setInventoryItems(result));
+    getCategories().then((result) => setCategories(result));
+  };
+
+  const getCategoryName = (item: InventoryItem): string => {
+    const category = CATEGORIES.find(
+      (value) => {
+        return value.categoryID == item.categoryID;
+      }
+    )
+    return category ? category.categoryName : "Invalid Category";
+  }
 
   return (
     <Container className="my-4">
@@ -104,18 +129,39 @@ export function ManageInventory() {
                     <Card.Title className="mb-1">{item.itemName}</Card.Title>
                     <Card.Text className="mb-2">{item.description}</Card.Text>
                     <Card.Text className="mb-0">Item amount: {item.quantity}</Card.Text>
+                    <Card.Text className="mb-0">Category: {getCategoryName(item)}</Card.Text>
+                    <Card.Text className="mb-0">Low Threshold: {item.lowThreshold}</Card.Text>
                   </div>
 
-                  <PencilSquare
-                    size="32px"
-                    className="align-self-center clickable"
-                    onClick={() => handleEditClick(item)}
-                  />
+                  <div className="d-flex gap-3 align-self-center">
+                    <PencilSquare
+                      size="28px"
+                      className="clickable"
+                      onClick={() => handleEditClick(item)}
+                    />
+                    {isAdmin && (
+                      <Trash3
+                        size="28px"
+                        className="clickable text-danger"
+                        onClick={() => handleDeleteClick(item)}
+                      />
+                    )}
+                  </div>
                 </Card.Body>
               </Card>
             ))}
         </Card.Body>
       </Card>
+
+      <DeleteConfirmationModal
+        show={showDelete}
+        itemName={selectedItem?.itemName ?? ''}
+        onCancel={() => {
+          setShowDelete(false);
+          setSelectedItem(null);
+        }}
+        onDelete={handleConfirmDelete}
+      />
 
       <EditItemModal
         show={showEdit}
@@ -124,8 +170,8 @@ export function ManageInventory() {
           setSelectedItem(null);
         }}
         onSave={handleEditItemSave}
-        itemName={selectedItem?.itemName ?? ''}
-        currentQuantity={selectedItem?.quantity ?? 0}
+        item={selectedItem}
+        existingCategories={CATEGORIES}
       />
       <AddItemModal
         show={showAdd}

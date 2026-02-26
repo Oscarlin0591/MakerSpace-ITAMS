@@ -30,3 +30,23 @@ export async function postItem(item: NewItem) {
     throw error;
   }
 }
+
+export async function putItem(id: number, item: InventoryItem) {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/items/${id}`, { item });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating item:', error);
+    throw error;
+  }
+}
+
+export async function deleteItem(id: number) {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/items/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting item:', error);
+    throw error;
+  }
+}

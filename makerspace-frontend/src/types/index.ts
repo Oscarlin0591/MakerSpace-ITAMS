@@ -55,12 +55,6 @@ export type User = {
   is_admin: boolean;
 };
 
-export type ItemTransaction = {
-  transactionId: number;
-  itemId: number;
-  quantityChanged: number;
-};
-
 export type Transaction = {
   transactionId: number;
   transactionSystem: string;

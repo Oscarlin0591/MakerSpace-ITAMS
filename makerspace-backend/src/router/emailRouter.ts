@@ -4,6 +4,25 @@ import config from "../config.json";
 
 const supabase = createClient(config.VITE_SUPABASE_URL, config.VITE_SUPABASE_PUBLISHABLE_KEY);
 
+export async function postEmail(email: string) {
+    const { data, error } = await supabase
+        .from('email_recipient')
+        .insert({ email })
+        .select()
+        .single();
+
+    return { success: !error, data, error };
+}
+
+export async function deleteEmail(email: string) {
+    const { error } = await supabase
+        .from('email_recipient')
+        .delete()
+        .eq('email', email);
+
+    return { success: !error, error };
+}
+
 export async function getEmail(email: string | void) {
     if (typeof email === "string") {
         const data = await supabase.from("email_recipient").select().eq('email', email).single();
