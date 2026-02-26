@@ -11,10 +11,19 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ---------- configuration ----------
-# HTTP endpoint exposed by the backend (adjust host/port as necessary)
-UPLOAD_URL = "http://10.145.46.65:3000/api/upload-image"
-# same key that the server expects (see .env PI_API_KEY)
-PI_API_KEY = "<your_pi_api_key_here>"
+# HTTP endpoint exposed by the backend (adjust host/port as necessary).
+# These can be overridden by environment variables when testing.
+UPLOAD_URL = os.environ.get("UPLOAD_URL",
+                            "http://10.145.46.65:3000/api/upload-image")
+# same key that the server expects (see .env PI_API_KEY); leaving this
+# blank/placeholder will simply prevent uploads.
+PI_API_KEY = os.environ.get("PI_API_KEY", "<your_pi_api_key_here>")
+
+# whether the script should attempt to upload the picture.  Set
+# ENABLE_UPLOAD=0 or false in the environment to suppress network activity.
+ENABLE_UPLOAD = os.environ.get("ENABLE_UPLOAD", "1").lower() in (
+    "1", "true", "yes",
+)
 
 # ---------- helper functions ----------
 def log(message: str):
@@ -53,8 +62,15 @@ def take_picture(camera_index: int = 0, filename: str | None = None) -> str:
         raise
 
 
-def upload_file(filepath: str) -> requests.Response:
-    """POST *filepath* to the backend using multipart/form-data."""
+def upload_file(filepath: str) -> requests.Response | None:
+    """POST *filepath* to the backend using multipart/form-data.
+    Returns the `requests.Response` on success or None when the upload was
+    skipped (tests or missing configuration).
+    """
+    if "<your_pi_api_key_here>" in PI_API_KEY or not PI_API_KEY:
+        log("No valid PI_API_KEY configured; upload aborted")
+        return None
+
     try:
         log(f"Uploading file to: {UPLOAD_URL}")
         with open(filepath, "rb") as f:
@@ -84,19 +100,23 @@ if __name__ == "__main__":
     log(f"Script directory: {SCRIPT_DIR}")
     log(f"Backend URL: {UPLOAD_URL}")
     
-    # sanity check configuration
-    if "<BACKEND_IP_OR_HOST>" in UPLOAD_URL or "<your_pi_api_key_here>" in PI_API_KEY:
-        log("ERROR: Configuration incomplete")
-        raise RuntimeError(
-            "Please set UPLOAD_URL and PI_API_KEY at the top of this script before running"
-        )
+    # sanity check; do not abort, just disable uploads if mis‑configured
+    if ENABLE_UPLOAD:
+        if "<BACKEND_IP_OR_HOST>" in UPLOAD_URL or "<your_pi_api_key_here>" in PI_API_KEY:
+            log("WARNING: Configuration incomplete; disabling upload")
+            ENABLE_UPLOAD = False
+    else:
+        log("Upload disabled via ENABLE_UPLOAD environment variable")
 
     try:
         local_file = take_picture()
         log(f"Image saved to: {local_file}")
-        log("-"*60)
-        upload_file(local_file)
-        log("-"*60)
+        log("-" * 60)
+        if ENABLE_UPLOAD:
+            upload_file(local_file)
+        else:
+            log("Skipping upload step")
+        log("-" * 60)
         log("All operations completed successfully")
     except Exception as e:
         log(f"Fatal error: {str(e)}")
