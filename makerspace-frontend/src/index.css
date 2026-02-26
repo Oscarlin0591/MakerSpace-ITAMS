@@ -21,6 +21,7 @@ body {
 /* Bootstrap format changes */
 .card {
   border-radius: 0.5rem;
+  background-color: var(--app-bg) !important;
 }
 .login {
   background-color: var(--qu-dark) !important;
