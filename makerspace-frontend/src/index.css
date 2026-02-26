@@ -26,6 +26,7 @@ body {
 /* Bootstrap format changes */
 .card {
   border-radius: 0.5rem;
+  background-color: var(--app-bg) !important;
 }
 .card-header {
   background: linear-gradient(90deg, var(--qu-dark), var(--qu-light));
