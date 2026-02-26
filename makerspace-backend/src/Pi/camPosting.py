@@ -1,14 +1,4 @@
 # Pi IP Address: 10.145.46.65
-#
-# This script runs on the Raspberry Pi 5 and demonstrates how to
-# capture a still from the Picamera2 API, save it locally, and then
-# POST it to the backend service defined in this repository.
-#
-# Before running:
-#   * install picamera2 and requests packages on the Pi (`pip install picamera2 requests`)
-#   * set UPLOAD_URL to the URL of your backend (e.g. http://192.168.1.100:3000/api/upload-image)
-#   * set PI_API_KEY to the same key configured in the server's .env file
-#   * make sure the backend is running and reachable from the Pi
 
 from picamera2 import Picamera2
 import time
