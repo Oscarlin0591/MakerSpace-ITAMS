@@ -22,7 +22,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ---------- configuration ----------
 # HTTP endpoint exposed by the backend (adjust host/port as necessary)
-UPLOAD_URL = "http://<BACKEND_IP_OR_HOST>:<PORT>/upload-image"
+UPLOAD_URL = "http://10.145.46.65:3000/api/upload-image"
 # same key that the server expects (see .env PI_API_KEY)
 PI_API_KEY = "<your_pi_api_key_here>"
 
