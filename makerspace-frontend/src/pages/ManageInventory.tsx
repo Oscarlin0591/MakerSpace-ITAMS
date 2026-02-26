@@ -91,6 +91,15 @@ export function ManageInventory() {
     getCategories().then((result) => setCategories(result));
   };
 
+  const getCategoryName = (item: InventoryItem): string => {
+    const category = CATEGORIES.find(
+      (value) => {
+        return value.categoryID == item.categoryID;
+      }
+    )
+    return category ? category.categoryName : "Invalid Category";
+  }
+
   return (
     <Container className="my-4">
       <Card>
@@ -120,6 +129,8 @@ export function ManageInventory() {
                     <Card.Title className="mb-1">{item.itemName}</Card.Title>
                     <Card.Text className="mb-2">{item.description}</Card.Text>
                     <Card.Text className="mb-0">Item amount: {item.quantity}</Card.Text>
+                    <Card.Text className="mb-0">Category: {getCategoryName(item)}</Card.Text>
+                    <Card.Text className="mb-0">Low Threshold: {item.lowThreshold}</Card.Text>
                   </div>
 
                   <div className="d-flex gap-3 align-self-center">

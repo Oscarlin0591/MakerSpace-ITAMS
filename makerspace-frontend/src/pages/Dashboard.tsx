@@ -64,7 +64,7 @@ export function Dashboard() {
                 </Col>
                 <Col className="text-end p-0">
                   <Button
-                    variant="primary"
+                    variant="warning"
                     onClick={() => {
                       setShowExport(true);
                     }}
