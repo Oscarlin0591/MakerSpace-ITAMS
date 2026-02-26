@@ -29,6 +29,9 @@ export default function TopNavbar() {
           <Nav.Link as={Link} to="/manage-inventory" className="fw-bold">
             Manage Inventory
           </Nav.Link>
+          <Nav.Link as={Link} to="/yolo">
+              YOLO
+          </Nav.Link>
         </Nav>
         <Nav>
           <Nav.Link as={Link} to="/logout">
