@@ -1,12 +1,22 @@
 // Use relative paths in production (works with nginx proxy)
 // Use absolute localhost URL in development
+<<<<<<< HEAD
+const viteApiUrl = import.meta.env.VITE_API_URL;
+export const BACKEND_URL = "http://localhost:3000";
+export const API_BASE_URL = viteApiUrl;
+if (!viteApiUrl) {
+=======
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 if (!API_BASE_URL) {
+>>>>>>> dfb7b334c1361d92b0dec9d600047b2568152fc7
   throw new Error(
     'Missing environment variable VITE_API_URL. Create makerspace-frontend/.env following the .env.example',
   );
 }
+<<<<<<< HEAD
+=======
 export { API_BASE_URL };
+>>>>>>> dfb7b334c1361d92b0dec9d600047b2568152fc7
 
 export type Category = {
   categoryID: number;
@@ -43,12 +53,6 @@ export type User = {
   username: string;
   hash: string;
   is_admin: boolean;
-};
-
-export type ItemTransaction = {
-  transactionId: number;
-  itemId: number;
-  quantityChanged: number;
 };
 
 export type Transaction = {

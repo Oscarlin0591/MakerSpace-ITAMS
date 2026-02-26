@@ -1,6 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Card, Form, ListGroup, Modal, Button, Spinner } from 'react-bootstrap';
-import { ActivityChart } from '../features/StorageActivityChart';
+import { Card, Form, ListGroup, Spinner } from 'react-bootstrap';
 import { getItems } from '../service/item_service';
 import type { InventoryItem } from '../types/index';
 
@@ -10,8 +9,6 @@ type SelectItemCardProps = {
 
 export default function SelectItemCard({ onItemSelect }: SelectItemCardProps) {
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<InventoryItem | null>(null);
-  const [showDetails, setShowDetails] = useState(false);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,13 +37,11 @@ export default function SelectItemCard({ onItemSelect }: SelectItemCardProps) {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     return items.filter(
-      (it) => it.itemName.toLowerCase().includes(q) || it.categoryID.toString().includes(q)
+      (it) => it.itemName.toLowerCase().includes(q) || it.categoryID.toString().includes(q),
     );
   }, [query, items]);
 
   function handleSelect(item: InventoryItem) {
-    setSelected(item);
-    setShowDetails(true);
     if (onItemSelect) {
       onItemSelect(item);
     }
@@ -58,7 +53,10 @@ export default function SelectItemCard({ onItemSelect }: SelectItemCardProps) {
         <Card.Header className="card-header d-flex align-items-center">
           <h6 className="m-0">Select Item</h6>
         </Card.Header>
-        <Card.Body className="d-flex justify-content-center align-items-center" style={{ height: '200px' }}>
+        <Card.Body
+          className="d-flex justify-content-center align-items-center"
+          style={{ height: '200px' }}
+        >
           <Spinner animation="border" />
         </Card.Body>
       </Card>
@@ -82,7 +80,9 @@ export default function SelectItemCard({ onItemSelect }: SelectItemCardProps) {
           </Form.Group>
 
           {query.trim() === '' ? (
-            <div className="text-muted small mt-3">Type to search for items (e.g., PLA, Vinyl, Plywood)</div>
+            <div className="text-muted small mt-3">
+              Type to search for items (e.g., PLA, Vinyl, Plywood)
+            </div>
           ) : results.length === 0 ? (
             <div className="text-muted small mt-3">No items found for "{query}"</div>
           ) : (
@@ -92,7 +92,7 @@ export default function SelectItemCard({ onItemSelect }: SelectItemCardProps) {
                   <div className="d-flex justify-content-between">
                     <div>
                       <strong>{r.itemName}</strong>
-                      <div className="text-muted small">{r.categoryName || 'Category'}</div>
+                      <div className="text-muted small">{r.categoryID || 'Category'}</div>
                     </div>
                     <div className="text-end">
                       <div>{r.quantity} units</div>
@@ -107,63 +107,6 @@ export default function SelectItemCard({ onItemSelect }: SelectItemCardProps) {
           )}
         </Card.Body>
       </Card>
-
-      <Card>
-        <Card.Header className="card-header d-flex align-items-center">
-          <h6 className="m-0">Activity</h6>
-        </Card.Header>
-        <Card.Body>
-          {selected ? (
-            <>
-              <h6 className="mb-3">{selected.itemName}</h6>
-              <ActivityChart />
-            </>
-          ) : (
-            <div className="text-muted text-center py-5">Select an item to view activity</div>
-          )}
-        </Card.Body>
-      </Card>
-
-      <Modal show={showDetails} onHide={() => setShowDetails(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>{selected?.itemName}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selected && (
-            <div>
-              <p>
-                <strong>Quantity:</strong> {selected.quantity} units
-              </p>
-              <p>
-                <strong>Low Threshold:</strong> {selected.lowThreshold}
-              </p>
-              <p>
-                <strong>Category ID:</strong> {selected.categoryID}
-              </p>
-              {selected.categoryName && (
-                <p>
-                  <strong>Category Name:</strong> {selected.categoryName}
-                </p>
-              )}
-              {selected.color && (
-                <p>
-                  <strong>Color:</strong> {selected.color}
-                </p>
-              )}
-              {selected.description && (
-                <p>
-                  <strong>Description:</strong> {selected.description}
-                </p>
-              )}
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDetails(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </>
   );
 }
