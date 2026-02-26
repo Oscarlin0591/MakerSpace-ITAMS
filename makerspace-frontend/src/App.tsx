@@ -1,56 +1,73 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Dashboard } from './pages/Dashboard';
 import { ManageInventory } from './pages/ManageInventory.tsx';
 import Login from './pages/Login.tsx';
 import MailingList from './pages/MailingList';
 import TopNavbar from './components/TopNavbar';
-import type { JSX } from 'react/jsx-runtime';
 import { useCookies } from 'react-cookie';
 import { useEffect } from 'react';
-import LogOut from './LogOut.tsx';
+import LogOut from './components/LogOut.tsx';
 import axios from 'axios';
+import Yolo from './pages/Yolo.tsx';
+import AuthenticateRoute from './components/AuthenticateRoute.tsx';
+import { UserProvider } from './contexts/user';
 
 function App() {
-  const [cookies, setCookie, removeCookie] = useCookies(['token']);
+  const [cookies, setCookie, removeCookie] = useCookies(['token', 'isAdmin']);
+
+  if (cookies.token) {
+    axios.defaults.headers.common['Authorization'] = cookies.token;
+  }
+
   // Ensure axios sends the auth header when app initializes and a cookie exists
   useEffect(() => {
     if (cookies.token) {
       axios.defaults.headers.common['Authorization'] = cookies.token;
     }
   }, [cookies.token]);
-  // Redirects to the login if the user is authenticated.
-  function checkForAuthentication(element: JSX.Element) {
-    if (cookies.token) {
-      return element;
-    } else {
-      return <Navigate to="/" />;
-    }
-  }
 
-  function setToken(token: string) {
-    setCookie('token', token);
+  function setToken(token: string, isAdmin: boolean) {
+    // Accessible on all pages; Allow cookie to exist for 24hrs
+    const options = { path: '/', maxAge: 86400 };
+
+    setCookie('token', token, options);
+    setCookie('isAdmin', isAdmin.toString(), options);
     axios.defaults.headers.common['Authorization'] = token;
   }
 
   function removeToken() {
-    removeCookie('token');
+    const options = { path: '/' };
+
+    removeCookie('token', options);
+    removeCookie('isAdmin', options);
     axios.defaults.headers.common['Authorization'] = undefined;
   }
 
   return (
-    <BrowserRouter>
-      <NavbarLimiter />
-      <Routes>
-        <Route path="/manage-inventory" element={checkForAuthentication(<ManageInventory />)} />
-        <Route path="/home" element={checkForAuthentication(<Dashboard />)} />
-        <Route
-          path="/"
-          element={cookies.token ? <Navigate to="/home" /> : <Login setToken={setToken} />}
-        />
-        <Route path="/mailing-list" element={checkForAuthentication(<MailingList />)} />
-        <Route path="/logout" element={checkForAuthentication(<LogOut logOut={removeToken} />)} />
-      </Routes>
-    </BrowserRouter>
+    <UserProvider>
+      <BrowserRouter>
+        <NavbarLimiter />
+        <Routes>
+          <Route path="/" element={<Login setToken={setToken} />} />
+
+          {/* Authenticated User Routes */}
+          <Route path="/home" element={<AuthenticateRoute element={<Dashboard />} />} />
+          <Route
+            path="/manage-inventory"
+            element={<AuthenticateRoute element={<ManageInventory />} />}
+          />
+          <Route path="/yolo" element={<AuthenticateRoute element={<Yolo />} />} />
+
+          {/* Admin Protected Routes */}
+          <Route
+            path="/mailing-list"
+            element={<AuthenticateRoute element={<MailingList />} adminOnly={true} />}
+          />
+
+          <Route path="/logout" element={<LogOut logOut={removeToken} />} />
+        </Routes>
+      </BrowserRouter>
+    </UserProvider>
   );
 }
 

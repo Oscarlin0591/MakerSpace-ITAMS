@@ -39,7 +39,7 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
   const [newCategory, setCatetory] = useState<NewCategory>({
     categoryName: '',
     units: '',
-  })
+  });
 
   //Validation state
   const [validated, setValidated] = useState(false);
@@ -66,7 +66,7 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
     const { name, value } = e.target;
     setCatetory((prevData) => ({
       ...prevData,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -91,11 +91,11 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
       lowThreshold: 0,
       color: '',
     });
-    
+
     setCatetory({
       categoryName: '',
-      units: ''
-    })
+      units: '',
+    });
     setIsAddingNew(false);
     setValidated(false);
   };
@@ -103,7 +103,6 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
   // Clear modal on open
   useEffect(() => {
     if (show) clearForm();
-    // console.log('form cleared');
   }, [show]);
 
   // Get the selected dropdown category and values needed for display
@@ -156,8 +155,8 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
 
     const catToSave: NewCategory = {
       categoryName: newCategory.categoryName,
-      units: newCategory.units
-    }
+      units: newCategory.units,
+    };
 
     postCategory(catToSave);
     onSave(itemToSave);
