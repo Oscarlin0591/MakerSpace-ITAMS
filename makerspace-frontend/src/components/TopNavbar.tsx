@@ -31,7 +31,7 @@ export default function TopNavbar() {
           </Nav.Link>
           <Nav.Link as={Link} to="/yolo">
               YOLO
-            </Nav.Link>
+          </Nav.Link>
         </Nav>
         <Nav>
           <Nav.Link as={Link} to="/logout">
