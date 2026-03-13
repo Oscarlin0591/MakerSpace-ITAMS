@@ -67,7 +67,7 @@ function MailingList() {
               <h4 className="m-0">Mailing List</h4>
             </Col>
             <Col className="text-end p-0">
-              <Button size="sm" onClick={(): void => setShow(true)}>
+              <Button variant="warning" size="sm" onClick={(): void => setShow(true)}>
                 + Add Email
               </Button>
             </Col>

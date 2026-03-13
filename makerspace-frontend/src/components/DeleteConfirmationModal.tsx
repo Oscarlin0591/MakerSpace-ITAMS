@@ -16,13 +16,10 @@ type ModalProps = {
 function DeleteConfirmationModal({ show, itemName, onCancel, onDelete }: ModalProps) {
   return (
     <Modal show={show} onHide={onCancel} centered size="sm">
-      <Modal.Header closeButton>
-        <Modal.Title>Delete item?</Modal.Title>
-      </Modal.Header>
       <Modal.Body>
         <p>
           Are you sure you want to delete this item?
-          <strong> {itemName}</strong>
+          (<strong>{itemName}</strong>)
         </p>
       </Modal.Body>
       <Modal.Footer>

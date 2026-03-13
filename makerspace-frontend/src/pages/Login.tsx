@@ -11,7 +11,6 @@ import Row from 'react-bootstrap/Row';
 import Logo from '../assets/Logo.svg';
 import { authenticateUser } from '../service/user_service';
 import { useUser } from '../contexts/user';
-import { Text } from 'recharts';
 
 function Login({ setToken }: { setToken: (token: string, isAdmin: boolean) => void }) {
   const [errorMessage, setErrorMessage] = useState('');
@@ -46,19 +45,15 @@ function Login({ setToken }: { setToken: (token: string, isAdmin: boolean) => vo
 
   return (
     <Container
-      className="d-flex align-items-center justify-content-center"
-      style={{ minHeight: '90vh', flexDirection: 'column' }}
+      className="d-flex align-items-center justify-content-center login"
+      style={{ height: '100%',maxWidth: '100%', flexDirection: 'column' }}
     >
+      <Image src={Logo} alt="Logo" height={72} className="mb-3 mx-auto" />
+      <h1 className="white-text">Makerspace Inventory Tracking and Management System (ITAMS)</h1>
       <Card
-        className="p-4 shadow-lg text-center mt-5 border-2 login"
+        className="p-4 shadow-lg text-center mt-5 border-2"
         style={{ maxWidth: '420px', width: '100%' }}
       >
-        <Container>
-          <Row className="justify-content-center align-items-center">
-            <Col><h1 className="white-text">ITAMS</h1></Col>
-            <Col><Image src={Logo} alt="Logo" height={72} className="mb-3 mx-auto" /></Col>
-          </Row>
-        </Container>
         <Form onSubmit={handleLogin} className="w-100">
           <Form.Group className="mb-3">
             <Form.Control name="username" type="text" placeholder="Username" required />
@@ -73,7 +68,7 @@ function Login({ setToken }: { setToken: (token: string, isAdmin: boolean) => vo
           {errorMessage && <p className="text-danger text-center mt-3">{errorMessage}</p>}
         </Form>
       </Card>
-      <Container className="mt-5"><h4>The Makerspace ITAMS project is an automated inventory system that uses a camera and AI designed to track consumables within the Quinnipiac University Maker Space</h4></Container>
+      <Container className="mt-5 white-text"><h4>The Makerspace ITAMS project is an automated inventory system that uses a camera and AI designed to track consumables within the Quinnipiac University Maker Space</h4></Container>
     </Container>
   );
 }

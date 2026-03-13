@@ -3,18 +3,20 @@
  * Home page used to display inventory data and analytics
  */
 import StockLevelsChart from '../features/StockLevelsChart';
-import SelectItemCard from '../features/SelectItemCard';
+import SelectItemCard from '../features/SelectItem';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import ExportDataModal from '../components/ExportDataModal';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { type InventoryItem } from '../types';
 import { getItems } from '../service/item_service';
 import { ActivityChart } from '../features/StorageActivityChart';
+import { type BackendTransaction, getTransactions } from '../service/transaction_service.ts';
 
 export function Dashboard() {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [inventory, setInventory] = useState<Array<InventoryItem>>([]);
+  const [transactions, setTransactions] = useState<BackendTransaction[]>([]);
 
   useEffect(() => {
     getItems()
@@ -31,24 +33,8 @@ export function Dashboard() {
       .catch((_err) => {
         setInventory([]);
       });
+    getTransactions().then((data) => setTransactions(data));
   }, []);
-
-  const csvData = useMemo(
-    () => [
-      ['Item Id', 'Category Id', 'Item Name', 'Quantity', 'Threshold', 'Color'],
-      ...(Array.isArray(inventory)
-        ? inventory.map((item) => [
-            `${item.itemID}`,
-            `${item.categoryID}`,
-            item.itemName,
-            `${item.quantity}`,
-            `${item.lowThreshold}`,
-            item.color,
-          ])
-        : []),
-    ],
-    [inventory],
-  );
 
   return (
     <Container fluid className="my-4">
@@ -92,12 +78,8 @@ export function Dashboard() {
 
       <ExportDataModal
         show={showExport}
-        onCancel={() => setShowExport(false)}
-        onExport={(dateRange, rangeType) => {
-          console.log('Export requested for inventory', { dateRange, rangeType });
-          setShowExport(false);
-        }}
-        csvData={csvData}
+        data={transactions}
+        onClose={() => setShowExport(false)}
       />
     </Container>
   );

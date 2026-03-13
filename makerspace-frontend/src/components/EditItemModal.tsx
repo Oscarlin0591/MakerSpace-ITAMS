@@ -5,9 +5,10 @@
  */
 
 import { Modal, Button, Form, InputGroup, Row, Col } from 'react-bootstrap';
-import { useState, useEffect, type ChangeEvent } from 'react';
+import { useState, useEffect, type ChangeEvent, type ReactNode } from 'react';
 import type { InventoryItem, Category } from '../types';
 import { putItem } from '../service/item_service';
+import { useUser } from '../contexts/user';
 
 type ModalProps = {
   show: boolean;
@@ -21,6 +22,8 @@ function EditItemModal({ show, onCancel, onSave, item, existingCategories }: Mod
   const [editedItem, setEditedItem] = useState<InventoryItem | null>(null);
   const [validated, setValidated] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const { isAdmin } = useUser();
 
   // Populate form with the selected item when modal opens
   useEffect(() => {
@@ -77,6 +80,15 @@ function EditItemModal({ show, onCancel, onSave, item, existingCategories }: Mod
     }
   };
 
+  const adminOnly = (element: ReactNode): ReactNode => {
+    if (isAdmin) {
+      return element;
+    }
+    else {
+      return <></>
+    }
+  }
+
   return (
     <Modal show={show} onHide={onCancel} centered size="lg">
       <Modal.Header closeButton>
@@ -85,7 +97,7 @@ function EditItemModal({ show, onCancel, onSave, item, existingCategories }: Mod
       <Modal.Body>
         <Form noValidate>
           {/* Item Name */}
-          <Form.Group controlId="editItemName" className="mb-3">
+          {adminOnly(<Form.Group controlId="editItemName" className="mb-3">
             <Form.Label>Item Name</Form.Label>
             <Form.Control
               type="text"
@@ -99,10 +111,10 @@ function EditItemModal({ show, onCancel, onSave, item, existingCategories }: Mod
             <Form.Control.Feedback type="invalid">
               Please provide an item name.
             </Form.Control.Feedback>
-          </Form.Group>
+          </Form.Group>)}
 
           {/* Category Dropdown */}
-          <Form.Group controlId="editCategory" className="mb-3">
+          {adminOnly(<Form.Group controlId="editCategory" className="mb-3">
             <Form.Label>Category</Form.Label>
             <Form.Select
               value={editedItem.categoryID?.toString() ?? ''}
@@ -117,7 +129,7 @@ function EditItemModal({ show, onCancel, onSave, item, existingCategories }: Mod
               ))}
             </Form.Select>
             <Form.Control.Feedback type="invalid">Please select a category.</Form.Control.Feedback>
-          </Form.Group>
+          </Form.Group>)}
 
           {/* Quantity and Low Threshold */}
           <Row className="mb-3">
@@ -137,7 +149,7 @@ function EditItemModal({ show, onCancel, onSave, item, existingCategories }: Mod
                 <Form.Control.Feedback type="invalid">Must be 0 or more.</Form.Control.Feedback>
               </InputGroup>
             </Form.Group>
-            <Form.Group as={Col} controlId="editLowThreshold">
+            {adminOnly(<Form.Group as={Col} controlId="editLowThreshold">
               <Form.Label>Low Threshold</Form.Label>
               <InputGroup>
                 <Form.Control
@@ -152,19 +164,8 @@ function EditItemModal({ show, onCancel, onSave, item, existingCategories }: Mod
                 {selectedCategory && <InputGroup.Text>{selectedCategory.units}</InputGroup.Text>}
                 <Form.Control.Feedback type="invalid">Must be 0 or more.</Form.Control.Feedback>
               </InputGroup>
-            </Form.Group>
+            </Form.Group>)}
           </Row>
-
-          {/* Optional Color */}
-          <Form.Group controlId="editColor" className="mb-3">
-            <Form.Label>Color (Optional)</Form.Label>
-            <Form.Control
-              type="text"
-              name="color"
-              value={editedItem.color || ''}
-              onChange={handleChange}
-            />
-          </Form.Group>
         </Form>
       </Modal.Body>
       <Modal.Footer>

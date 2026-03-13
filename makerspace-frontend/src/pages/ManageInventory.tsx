@@ -110,7 +110,7 @@ export function ManageInventory() {
             </Col>
             {isAdmin && (
               <Col className="text-end p-0">
-                <Button size="sm" onClick={() => setShowAdd(true)}>
+                <Button variant="warning" size="sm" onClick={() => setShowAdd(true)}>
                   + Add Item
                 </Button>
               </Col>
