@@ -17,7 +17,7 @@ function DeleteConfirmationModal({ show, itemName, onCancel, onDelete }: ModalPr
   return (
     <Modal show={show} onHide={onCancel} centered size="sm">
       <Modal.Header closeButton>
-        <Modal.Title>Delete item?</Modal.Title>
+        <Modal.Title></Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <p>

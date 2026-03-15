@@ -153,7 +153,7 @@ const initializeServer = async () => {
     }
   });
 
-  apiRouter.put('/items/:id', authorizeAdmin, async (req: Request, res: Response) => {
+  apiRouter.put('/items/:id', authorizeUser, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id, 10);
       const item = req.body.item;

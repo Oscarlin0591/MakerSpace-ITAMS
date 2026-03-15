@@ -8,6 +8,7 @@
 import { PencilSquare, Trash3 } from 'react-bootstrap-icons';
 import { useEffect, useState } from 'react';
 import EditItemModal from '../components/EditItemModal';
+import { ItemDetailModal } from '../components/ItemDetailModal';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { Alert, Button, Card, Col, Container, Row, Spinner } from 'react-bootstrap';
 import { type Category, type InventoryItem } from '../types';
@@ -162,17 +163,27 @@ export function ManageInventory() {
         }}
         onDelete={handleConfirmDelete}
       />
-
-      <EditItemModal
+      {isAdmin ?
+        <EditItemModal
+          show={showEdit}
+          onCancel={() => {
+            setShowEdit(false);
+            setSelectedItem(null);
+          }}
+          onSave={handleEditItemSave}
+          item={selectedItem}
+          existingCategories={CATEGORIES}
+        />
+      : 
+      <ItemDetailModal
         show={showEdit}
-        onCancel={() => {
+        item={selectedItem}
+        onHide={() => {
           setShowEdit(false);
           setSelectedItem(null);
         }}
         onSave={handleEditItemSave}
-        item={selectedItem}
-        existingCategories={CATEGORIES}
-      />
+      />}
       <AddItemModal
         show={showAdd}
         onCancel={() => {
@@ -182,12 +193,6 @@ export function ManageInventory() {
         onSave={handleAddItemSave}
         existingCategories={
           CATEGORIES
-          //   [
-          //   //TODO: Get actual existing categories
-          //   { categoryID: 1, categoryName: 'Filament', units: 'kg' },
-          //   { categoryID: 2, categoryName: 'Vinyl', units: 'pcs' },
-          //   { categoryID: 3, categoryName: 'Wood', units: 'pcs' },
-          // ]
         }
       />
     </Container>

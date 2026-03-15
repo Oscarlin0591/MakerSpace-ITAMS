@@ -3,7 +3,7 @@
  * Home page used to display inventory data and analytics
  */
 import StockLevelsChart from '../features/StockLevelsChart';
-import SelectItemCard from '../features/SelectItemCard';
+import SelectItemCard from '../features/SelectItem';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import ExportDataModal from '../components/ExportDataModal';
 import { useEffect, useMemo, useState } from 'react';

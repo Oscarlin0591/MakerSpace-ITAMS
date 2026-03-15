@@ -17,6 +17,7 @@ import { useState, useEffect } from 'react';
 import { Spinner, Alert } from 'react-bootstrap';
 import { getTransactions, type BackendTransaction } from '../service/transaction_service';
 import type { InventoryItem } from '../types/index';
+import { getCategory } from '../service/category';
 
 const COLORS = {
   bg: '#f8f9fa',
@@ -30,7 +31,7 @@ type SeriesPoint = { name: string; value: number; date: string };
 type ActivityChartProps = {
   series?: SeriesPoint[];
   timeframeInDays?: number;
-  selectedItem?: InventoryItem | null;
+  selectedItem: InventoryItem | null;
 };
 
 // Builds an array of series points over the entire month
@@ -70,6 +71,7 @@ export const ActivityChart: FC<ActivityChartProps> = ({
   const [chartData, setChartData] = useState<SeriesPoint[]>(series || []);
   const [loading, setLoading] = useState(!series);
   const [error, setError] = useState<string | null>(null);
+  const [units, setUnits] = useState<string | null>(null);
 
   useEffect(() => {
     // If series is provided as prop, use it instead of fetching
@@ -121,9 +123,18 @@ export const ActivityChart: FC<ActivityChartProps> = ({
       } finally {
         setLoading(false);
       }
+
+      if (selectedItem != null) {
+        const category = await getCategory(selectedItem?.categoryID);
+        console.log(category);
+        if (category) {
+          (category.units != null) ? setUnits(category.units) : setUnits('units')
+        }
+      }
     };
 
     fetchActivityData();
+
   }, [series, timeframeInDays, selectedItem]);
 
   // Loading spinner
@@ -217,7 +228,7 @@ export const ActivityChart: FC<ActivityChartProps> = ({
             width={80}
             allowDecimals={false}
             label={{
-              value: `Quantity (${'TBD'})`,
+              value: `${units}`,
               angle: -90,
               position: 'insideLeft',
               offset: 36,
