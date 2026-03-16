@@ -16,23 +16,20 @@ type ModalProps = {
 function DeleteConfirmationModal({ show, itemName, onCancel, onDelete }: ModalProps) {
   return (
     <Modal show={show} onHide={onCancel} centered size="sm">
-      <Modal.Header closeButton>
-        <Modal.Title></Modal.Title>
-      </Modal.Header>
       <Modal.Body>
         <p>
           Are you sure you want to delete this item?
           <strong> {itemName}</strong>
         </p>
+        <div className="d-flex justify-content-end gap-2">
+          <Button variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={onDelete}>
+            Delete
+          </Button>
+        </div>
       </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button variant="danger" onClick={onDelete}>
-          Delete
-        </Button>
-      </Modal.Footer>
     </Modal>
   );
 }

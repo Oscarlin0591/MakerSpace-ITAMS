@@ -5,10 +5,10 @@
  * low-stock inventory items
  */
 
-import { Envelope, Trash3 } from 'react-bootstrap-icons';
+import { Envelope, PlusSquare, Trash3 } from 'react-bootstrap-icons';
 import { type ReactNode, useEffect, useState } from 'react';
 import AddEmailModal from '../components/AddEmailModal.tsx';
-import { Container, ListGroup, Button, Row, Col, Card, Spinner, Alert } from 'react-bootstrap';
+import { Container, ListGroup, Row, Col, Card, Spinner, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../types';
 import axios from 'axios';
@@ -28,8 +28,12 @@ function MailingList() {
 
   useEffect(() => {
     axios.get(`${API_BASE_URL}/authorized-admin`).then(
-      function() {console.log("Success")},
-      function() { navigate('/'); }
+      function () {
+        console.log('Success');
+      },
+      function () {
+        navigate('/');
+      },
     );
 
     setLoading(true);
@@ -39,7 +43,7 @@ function MailingList() {
       .then((result) => setEmails(result))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [navigate]);
 
   function addEmail(email: string): void {
     setEmails((prev) => [...prev, email]);
@@ -61,15 +65,18 @@ function MailingList() {
   return (
     <Container className="my-4">
       <Card>
-        <Card.Header className="card-header-tall d-flex align-items-center">
+        <Card.Header className="d-flex align-items-center">
           <Row className="align-items-center w-100 m-0">
             <Col className="p-0">
-              <h4 className="m-0">Mailing List</h4>
+              <h5 className="m-0">Mailing List</h5>
             </Col>
             <Col className="text-end p-0">
-              <Button size="sm" onClick={(): void => setShow(true)}>
-                + Add Email
-              </Button>
+              <PlusSquare
+                size={28}
+                className="btn-card-header clickable"
+                onClick={(): void => setShow(true)}
+                title="Add Email"
+              />
             </Col>
           </Row>
         </Card.Header>

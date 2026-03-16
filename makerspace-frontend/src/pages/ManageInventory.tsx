@@ -5,12 +5,12 @@
  * to add/delete items that are tracked.
  */
 
-import { PencilSquare, Trash3 } from 'react-bootstrap-icons';
+import { PencilSquare, PlusSquare, Trash3 } from 'react-bootstrap-icons';
 import { useEffect, useState } from 'react';
 import EditItemModal from '../components/EditItemModal';
 import { ItemDetailModal } from '../components/ItemDetailModal';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
-import { Alert, Button, Card, Col, Container, Row, Spinner } from 'react-bootstrap';
+import { Alert, Card, Col, Container, Row, Spinner } from 'react-bootstrap';
 import { type Category, type InventoryItem } from '../types';
 import { getItems, deleteItem } from '../service/item_service';
 import AddItemModal from '../components/AddItemModal';
@@ -93,27 +93,28 @@ export function ManageInventory() {
   };
 
   const getCategoryName = (item: InventoryItem): string => {
-    const category = CATEGORIES.find(
-      (value) => {
-        return value.categoryID == item.categoryID;
-      }
-    )
-    return category ? category.categoryName : "Invalid Category";
-  }
+    const category = CATEGORIES.find((value) => {
+      return value.categoryID == item.categoryID;
+    });
+    return category ? category.categoryName : 'Invalid Category';
+  };
 
   return (
     <Container className="my-4">
       <Card>
-        <Card.Header className="card-header-tall d-flex align-items-center">
+        <Card.Header className="d-flex align-items-center">
           <Row className="align-items-center w-100 m-0">
             <Col className="p-0">
-              <h4 className="m-0">Manage Inventory</h4>
+              <h5 className="m-0">Manage Inventory</h5>
             </Col>
             {isAdmin && (
               <Col className="text-end p-0">
-                <Button size="sm" onClick={() => setShowAdd(true)}>
-                  + Add Item
-                </Button>
+                <PlusSquare
+                  size={28}
+                  className="btn-card-header clickable"
+                  onClick={() => setShowAdd(true)}
+                  title="Add Item"
+                />
               </Col>
             )}
           </Row>
@@ -124,7 +125,7 @@ export function ManageInventory() {
           {!loading &&
             !error &&
             INVENTORY_ITEMS.map((item) => (
-              <Card key={item.itemID} className="mb-3">
+              <Card key={item.itemID} className="nested-item-card mb-3">
                 <Card.Body className="d-flex justify-content-between align-items-start">
                   <div>
                     <Card.Title className="mb-1">{item.itemName}</Card.Title>
@@ -163,7 +164,7 @@ export function ManageInventory() {
         }}
         onDelete={handleConfirmDelete}
       />
-      {isAdmin ?
+      {isAdmin ? (
         <EditItemModal
           show={showEdit}
           onCancel={() => {
@@ -174,16 +175,17 @@ export function ManageInventory() {
           item={selectedItem}
           existingCategories={CATEGORIES}
         />
-      : 
-      <ItemDetailModal
-        show={showEdit}
-        item={selectedItem}
-        onHide={() => {
-          setShowEdit(false);
-          setSelectedItem(null);
-        }}
-        onSave={handleEditItemSave}
-      />}
+      ) : (
+        <ItemDetailModal
+          show={showEdit}
+          item={selectedItem}
+          onHide={() => {
+            setShowEdit(false);
+            setSelectedItem(null);
+          }}
+          onSave={handleEditItemSave}
+        />
+      )}
       <AddItemModal
         show={showAdd}
         onCancel={() => {
@@ -191,9 +193,7 @@ export function ManageInventory() {
           setSelectedItem(null);
         }}
         onSave={handleAddItemSave}
-        existingCategories={
-          CATEGORIES
-        }
+        existingCategories={CATEGORIES}
       />
     </Container>
   );
