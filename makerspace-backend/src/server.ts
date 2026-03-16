@@ -147,6 +147,9 @@ const initializeServer = async () => {
     try {
       const item = req.body.newItem;
       const result = await postItem(item);
+      if (!result.success) {
+        return res.status(500).json({ error: result.error?.message ?? 'Failed to insert item' });
+      }
       return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
