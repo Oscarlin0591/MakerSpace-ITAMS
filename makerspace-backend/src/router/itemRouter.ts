@@ -33,7 +33,7 @@ export async function postItem(item: InventoryItem) {
     })();
     const newItem : InventoryItem = new InventoryItem(item.itemID, item.itemName, catID ?? 0, item.quantity, item.lowThreshold, item.color, item.categoryName);
     const { data, error } = await supabase.from('inventory_item')
-    .insert({category_id: newItem.categoryID, item_name: newItem.itemName, quantity: newItem.quantity, threshold: newItem.lowThreshold, color: newItem.color ?? null})
+    .insert({category_id: catID ?? 99, item_name: newItem.itemName, quantity: newItem.quantity, threshold: newItem.lowThreshold, color: newItem.color ?? null})
     .select().single();
 
     return {success: !error, data, error};

@@ -14,23 +14,17 @@ import {
 } from 'recharts';
 import type { FC } from 'react';
 import { useState, useEffect } from 'react';
-import { Spinner, Alert } from 'react-bootstrap';
+import { Spinner, Alert, Card } from 'react-bootstrap';
 import { getTransactions, type BackendTransaction } from '../service/transaction_service';
 import type { InventoryItem } from '../types/index';
-
-const COLORS = {
-  bg: '#f8f9fa',
-  gold: '#ffb81c',
-  light: '#4db3ff',
-  dark: '#000b65',
-};
+import { getCategory } from '../service/category';
 
 type SeriesPoint = { name: string; value: number; date: string };
 
 type ActivityChartProps = {
   series?: SeriesPoint[];
   timeframeInDays?: number;
-  selectedItem?: InventoryItem | null;
+  selectedItem: InventoryItem | null;
 };
 
 // Builds an array of series points over the entire month
@@ -70,6 +64,7 @@ export const ActivityChart: FC<ActivityChartProps> = ({
   const [chartData, setChartData] = useState<SeriesPoint[]>(series || []);
   const [loading, setLoading] = useState(!series);
   const [error, setError] = useState<string | null>(null);
+  const [units, setUnits] = useState<string>('');
 
   useEffect(() => {
     // If series is provided as prop, use it instead of fetching
@@ -83,7 +78,11 @@ export const ActivityChart: FC<ActivityChartProps> = ({
         setLoading(true);
         setError(null);
 
-        const transactions = await getTransactions();
+        const [transactions, category] = await Promise.all([
+          getTransactions(),
+          selectedItem ? getCategory(selectedItem.categoryID) : Promise.resolve(null),
+        ]);
+        setUnits(category?.units ?? '');
 
         // Filter transactions by selectedItem if provided
         const filteredTransactions = selectedItem
@@ -129,134 +128,143 @@ export const ActivityChart: FC<ActivityChartProps> = ({
   // Loading spinner
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <Spinner animation="border" style={{ color: COLORS.dark }} />
-      </div>
+      <Card className="nested-item-card shadow-sm">
+        <Card.Body
+          className="d-flex justify-content-center align-items-center"
+          style={{ height: '400px' }}
+        >
+          <Spinner animation="border" style={{ color: 'var(--qu-dark)' }} />
+        </Card.Body>
+      </Card>
     );
   }
 
   // Error
   if (error) {
     return (
-      <div
-        className="d-flex justify-content-center align-items-center"
-        style={{ height: '400px', backgroundColor: COLORS.bg, borderRadius: 8 }}
-      >
-        <Alert
-          variant="danger"
-          style={{
-            borderColor: COLORS.dark,
-            color: COLORS.dark,
-            maxWidth: 400,
-            textAlign: 'center',
-          }}
+      <Card className="nested-item-card shadow-sm">
+        <Card.Body
+          className="d-flex justify-content-center align-items-center"
+          style={{ height: '400px' }}
         >
-          <Alert.Heading>Chart Unavailable</Alert.Heading>
-          <p className="mb-0">{error}</p>
-        </Alert>
-      </div>
+          <Alert
+            variant="danger"
+            style={{
+              borderColor: 'var(--qu-dark)',
+              color: 'var(--qu-dark)',
+              maxWidth: 400,
+              textAlign: 'center',
+            }}
+          >
+            <Alert.Heading>Chart Unavailable</Alert.Heading>
+            <p className="mb-0">{error}</p>
+          </Alert>
+        </Card.Body>
+      </Card>
     );
   }
 
   // Series is empty. Nothing to render
   if (chartData.length === 0) {
     return (
-      <div
-        className="d-flex justify-content-center align-items-center"
-        style={{ height: '400px', backgroundColor: COLORS.bg, borderRadius: 8 }}
-      >
-        <Alert
-          variant="info"
-          style={{
-            borderColor: COLORS.light,
-            color: COLORS.dark,
-            maxWidth: 400,
-            textAlign: 'center',
-          }}
+      <Card className="nested-item-card shadow-sm">
+        <Card.Body
+          className="d-flex justify-content-center align-items-center"
+          style={{ height: '400px' }}
         >
-          <Alert.Heading>No Data</Alert.Heading>
-          <p className="mb-0">No data is available for this period.</p>
-        </Alert>
-      </div>
+          <Alert
+            variant="info"
+            style={{
+              borderColor: 'var(--qu-light)',
+              color: 'var(--qu-dark)',
+              maxWidth: 400,
+              textAlign: 'center',
+            }}
+          >
+            <Alert.Heading>No Data</Alert.Heading>
+            <p className="mb-0">No data is available for this period.</p>
+          </Alert>
+        </Card.Body>
+      </Card>
     );
   }
 
   // Render chart data
   return (
-    <div style={{ backgroundColor: COLORS.bg, borderRadius: 8, padding: '8px 0' }}>
-      <h6
-        style={{
-          textAlign: 'center',
-          color: COLORS.dark,
-          fontWeight: 700,
-          letterSpacing: '0.04em',
-          marginBottom: 4,
-        }}
-      >
-        {`${selectedItem?.itemName || 'All Items'} - ${getMonthLabel(chartData)}`}
-      </h6>
-      <ResponsiveContainer width="100%" aspect={1.618} maxHeight={400}>
-        <LineChart data={chartData} margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
-          <CartesianGrid stroke={COLORS.light} strokeDasharray="5 5" opacity={0.4} />
-          <XAxis
-            tickFormatter={(day) => (Number(day) % 5 === 0 || day === '1' ? day : '')}
-            dataKey="name"
-            label={{
-              value: 'Day',
-              position: 'insideBottom',
-              offset: -6,
-              style: { fill: COLORS.dark, fontSize: 12 },
-            }}
-            tick={{ fill: COLORS.dark, fontSize: 11 }}
-            axisLine={{ stroke: COLORS.dark }}
-            tickLine={{ stroke: COLORS.dark }}
-            interval={0}
-          />
-          {/** TODO: Add proper units to y-axis label*/}
-          <YAxis
-            width={80}
-            allowDecimals={false}
-            label={{
-              value: `Quantity (${'TBD'})`,
-              angle: -90,
-              position: 'insideLeft',
-              offset: 36,
-              dy: 40,
-              style: { fill: COLORS.dark, fontSize: 12 },
-            }}
-            tick={{ fill: COLORS.dark, fontSize: 12 }}
-            axisLine={{ stroke: COLORS.dark }}
-            tickLine={{ stroke: COLORS.dark }}
-          />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: COLORS.bg,
-              border: `1px solid ${COLORS.dark}`,
-              borderRadius: 6,
-              color: COLORS.dark,
-            }}
-            labelFormatter={(label, payload) => {
-              const point = payload?.[0]?.payload as SeriesPoint | undefined;
-              return point?.date
-                ? new Date(point.date).toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })
-                : `Day ${label}`;
-            }}
-            formatter={(value: number) => [`${value} transactions`]}
-          />
-          <Line
-            type="monotone"
-            dataKey="value"
-            stroke={COLORS.dark}
-            strokeWidth={2}
-            dot={{ fill: COLORS.gold, stroke: COLORS.dark, strokeWidth: 1.5, r: 4 }}
-            activeDot={{ fill: COLORS.gold, stroke: COLORS.dark, strokeWidth: 2, r: 6 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
+    <Card className="nested-item-card no-select shadow-sm">
+      <Card.Body>
+        <h5 className="nested-item-card-title mb-3">{getMonthLabel(chartData)}</h5>
+        <ResponsiveContainer width="100%" aspect={1.618} maxHeight={400}>
+          <LineChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: 8 }}>
+            <CartesianGrid stroke={'var(--qu-light)'} strokeDasharray="5 5" opacity={0.4} />
+            <XAxis
+              tickFormatter={(day) => (Number(day) % 5 === 0 || day === '1' ? day : '')}
+              dataKey="name"
+              label={{
+                value: 'Day',
+                position: 'insideBottom',
+                offset: -6,
+                style: {
+                  fill: 'var(--qu-dark)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textAnchor: 'middle',
+                },
+              }}
+              tick={{ fill: 'var(--qu-dark)', fontSize: 11 }}
+              axisLine={{ stroke: 'var(--qu-dark)' }}
+              tickLine={{ stroke: 'var(--qu-dark)' }}
+              interval={0}
+            />
+            <YAxis
+              width={60}
+              allowDecimals={false}
+              label={{
+                value: units.trim() ? `Units (${units})` : 'Units',
+                angle: -90,
+                position: 'insideLeft',
+                offset: 30,
+                style: {
+                  fill: 'var(--qu-dark)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textAnchor: 'middle',
+                },
+              }}
+              tick={{ fill: 'var(--qu-dark)', fontSize: 12 }}
+              axisLine={{ stroke: 'var(--qu-dark)' }}
+              tickLine={{ stroke: 'var(--qu-dark)' }}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'var(--app-bg)',
+                border: '1px solid var(--qu-dark)',
+                borderRadius: 6,
+                color: 'var(--qu-dark)',
+              }}
+              labelFormatter={(label, payload) => {
+                const point = payload?.[0]?.payload as SeriesPoint | undefined;
+                return point?.date
+                  ? new Date(point.date).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })
+                  : `Day ${label}`;
+              }}
+              formatter={(value: number) => [`${value} transactions`]}
+            />
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke={'var(--qu-dark)'}
+              strokeWidth={2}
+              dot={{ fill: 'var(--qu-gold)', stroke: 'var(--qu-dark)', strokeWidth: 1.5, r: 4 }}
+              activeDot={{ fill: 'var(--qu-gold)', stroke: 'var(--qu-dark)', strokeWidth: 2, r: 6 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </Card.Body>
+    </Card>
   );
 };

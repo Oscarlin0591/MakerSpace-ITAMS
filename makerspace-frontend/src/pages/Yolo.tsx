@@ -2,11 +2,14 @@
  * Yolo.tsx
  * Object detection page using YOLOv7 TensorFlow.js model
  * Detects objects in real-time using the device webcam
+ * Auto-submits newly detected object classes to the inventory
  */
 
 import { useEffect, useRef, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
-import { Button, Card, Container, ProgressBar } from "react-bootstrap";
+import { Button, Card, Container, ProgressBar, Badge, ListGroup } from "react-bootstrap";
+import { getItems, postItem, putItem } from "../service/item_service";
+import { type NewItem, type InventoryItem } from "../types";
 
 type ModelState = {
   net: tf.GraphModel;
@@ -39,6 +42,13 @@ export function Yolo() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [streaming, setStreaming] = useState(false);
   const animFrameRef = useRef<number | null>(null);
+
+  // Track which class names have already been submitted this session
+  const submittedClassesRef = useRef<Set<string>>(new Set());
+  const [submittedItems, setSubmittedItems] = useState<{ name: string; status: "ok" | "error"; action: "added" | "updated" }[]>([]);
+
+  // Cache of existing inventory items fetched when the camera starts
+  const existingItemsRef = useRef<InventoryItem[]>([]);
 
   // Load model on mount
   useEffect(() => {
@@ -92,8 +102,10 @@ export function Yolo() {
     // Draw video frame first
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Run inference + synchronous NMS — everything in one rAF callback
-    // so the browser paints video + boxes together
+    // detectedClasses is populated via closure — tf.tidy only supports TensorContainer
+    // returns, so we cannot return string[] from it directly.
+    let detectedClasses: string[] = [];
+
     tf.tidy(() => {
       const frame      = tf.browser.fromPixels(video);
       const resized    = tf.image.resizeBilinear(frame, [modelH, modelW]);
@@ -117,7 +129,6 @@ export function Yolo() {
       const scores      = allScores.max(1) as tf.Tensor1D;
       const classIds    = allScores.argMax(1) as tf.Tensor1D;
 
-      // Synchronous NMS — no await, no yield, no missed paint
       const selectedIdx = tf.image.nonMaxSuppression(
         boxes, scores, MAX_DETECTIONS, IOU_THRESHOLD, CONF_THRESHOLD
       );
@@ -128,7 +139,54 @@ export function Yolo() {
       const classData = classIds.dataSync();
 
       drawBoxes(ctx, canvas.width, canvas.height, Array.from(idxData), boxData, scoreData, classData);
+
+      // dataSync() returns plain TypedArrays — not Tensors, safe to write to outer var
+      detectedClasses = Array.from(idxData).map(
+        (i) => COCO_CLASSES[classData[i]] ?? String(classData[i])
+      );
     });
+
+    // Submit each newly seen class once per session
+    const uniqueNew = [...new Set(detectedClasses)].filter(
+      (name) => !submittedClassesRef.current.has(name)
+    );
+    for (const className of uniqueNew) {
+      submittedClassesRef.current.add(className);
+
+      const existing = existingItemsRef.current.find(
+        (item) => item.itemName.toLowerCase() === className.toLowerCase()
+      );
+
+      if (existing) {
+        // Item already exists — increment its quantity
+        putItem(existing.itemID, { ...existing, quantity: existing.quantity + 1 })
+          .then(() => {
+            // Update cached quantity so repeated detections in the same session stay accurate
+            existing.quantity += 1;
+            setSubmittedItems((prev) => [...prev, { name: className, status: "ok", action: "updated" }]);
+          })
+          .catch((err) => {
+            console.error(`Failed to update "${className}" in inventory:`, err);
+            setSubmittedItems((prev) => [...prev, { name: className, status: "error", action: "updated" }]);
+          });
+      } else {
+        // Item does not exist — create it
+        const newItem: NewItem = {
+          itemName: className,
+          quantity: 1,
+          lowThreshold: 1,
+          categoryID: null,
+        };
+        postItem(newItem)
+          .then(() =>
+            setSubmittedItems((prev) => [...prev, { name: className, status: "ok", action: "added" }])
+          )
+          .catch((err) => {
+            console.error(`Failed to add "${className}" to inventory:`, err);
+            setSubmittedItems((prev) => [...prev, { name: className, status: "error", action: "added" }]);
+          });
+      }
+    }
 
     animFrameRef.current = requestAnimationFrame(() =>
       detectFrame(video, canvas, net, inputShape)
@@ -169,7 +227,8 @@ export function Yolo() {
 
   async function startCamera() {
     if (!videoRef.current || !model) return;
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    existingItemsRef.current = await getItems();
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: {ideal:1920}, height: {ideal: 1080}} });
     videoRef.current.srcObject = stream;
     videoRef.current.play();
     setStreaming(true);
@@ -190,6 +249,10 @@ export function Yolo() {
     const ctx = canvasRef.current?.getContext("2d");
     if (ctx && canvasRef.current) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     setStreaming(false);
+    // Reset session tracking so next camera start can re-detect
+    submittedClassesRef.current.clear();
+    existingItemsRef.current = [];
+    setSubmittedItems([]);
   }
 
   return (
@@ -199,7 +262,7 @@ export function Yolo() {
     >
       <Card
         className="p-4 shadow-lg text-center mt-5 border-2"
-        style={{ maxWidth: "640px", width: "100%" }}
+        style={{ maxWidth: "1920px", width: "100%" }}
       >
         <h4 className="mb-3" style={{ color: "var(--brand-deep)" }}>
           Object Detection
@@ -243,6 +306,28 @@ export function Yolo() {
             >
               {streaming ? "Stop Camera" : "Start Camera"}
             </Button>
+
+            {submittedItems.length > 0 && (
+              <div className="mt-3 text-start">
+                <p className="mb-1 fw-semibold" style={{ fontSize: "0.85rem" }}>
+                  Inventory changes:
+                </p>
+                <ListGroup style={{ maxHeight: "150px", overflowY: "auto" }}>
+                  {submittedItems.map((item, idx) => (
+                    <ListGroup.Item
+                      key={idx}
+                      className="d-flex justify-content-between align-items-center py-1 px-2"
+                      style={{ fontSize: "0.8rem" }}
+                    >
+                      {item.name}
+                      <Badge bg={item.status === "ok" ? (item.action === "added" ? "success" : "primary") : "danger"}>
+                        {item.status === "ok" ? item.action : "failed"}
+                      </Badge>
+                    </ListGroup.Item>
+                  ))}
+                </ListGroup>
+              </div>
+            )}
           </>
         )}
       </Card>

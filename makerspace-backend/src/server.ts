@@ -147,13 +147,16 @@ const initializeServer = async () => {
     try {
       const item = req.body.newItem;
       const result = await postItem(item);
+      if (!result.success) {
+        return res.status(500).json({ error: result.error?.message ?? 'Failed to insert item' });
+      }
       return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
   });
 
-  apiRouter.put('/items/:id', authorizeAdmin, async (req: Request, res: Response) => {
+  apiRouter.put('/items/:id', authorizeUser, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id, 10);
       const item = req.body.item;
