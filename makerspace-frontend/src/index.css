@@ -53,8 +53,8 @@ body {
   color: #ffffff !important;
   margin-left: 0.5rem;
   transition:
-    color 0.5s ease,
-    transform 0.5s ease;
+    color 0.15s ease,
+    transform 0.15s ease !important;
 }
 .logout-button:hover {
   color: var(--qu-gold) !important;

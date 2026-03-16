@@ -64,7 +64,7 @@ export default function SelectItemCard() {
   return (
     <Card className="h-100">
       <Card.Header className="card-header d-flex align-items-center">
-        <h5 className="m-0">{'Activity'}</h5>
+        <h5 className="m-0">{'Item Details'}</h5>
       </Card.Header>
       <Card.Body>
         {error && <div className="alert alert-danger">{error}</div>}
@@ -89,12 +89,12 @@ export default function SelectItemCard() {
         {confirmedItem && (
           <Card className="nested-item-card no-select shadow-sm mb-4">
             <Card.Body>
-              <Row className="align-items-center">
-                <Col>
+              <Row>
+                <Col className="align-self-center">
                   <h5 className="nested-item-card-title mb-1">{confirmedItem.itemName}</h5>
                   <small className="text-muted">ID: {confirmedItem.itemID}</small>
                 </Col>
-                <Col xs="auto">
+                <Col xs="auto" className="align-self-end">
                   <Badge
                     bg={confirmedItem.quantity < confirmedItem.lowThreshold ? 'danger' : 'success'}
                   >
