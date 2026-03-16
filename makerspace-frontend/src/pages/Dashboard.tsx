@@ -2,103 +2,21 @@
  * Dashboard.tsx
  * Home page used to display inventory data and analytics
  */
-import StockLevelsChart from '../features/StockLevelsChart';
-import SelectItemCard from '../features/SelectItem';
-import { Container, Row, Col, Card, Button } from 'react-bootstrap';
-import ExportDataModal from '../components/ExportDataModal';
-import { useEffect, useMemo, useState } from 'react';
-import { type InventoryItem } from '../types';
-import { getItems } from '../service/item_service';
-import { ActivityChart } from '../features/StorageActivityChart';
+import StockLevelsCard from '../features/StockLevelsCard';
+import SelectItemCard from '../features/SelectItemCard';
+import { Container, Row, Col } from 'react-bootstrap';
 
 export function Dashboard() {
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-  const [showExport, setShowExport] = useState(false);
-  const [inventory, setInventory] = useState<Array<InventoryItem>>([]);
-
-  useEffect(() => {
-    getItems()
-      .then((result) => {
-        // Ensure result is an array
-        if (Array.isArray(result)) {
-          setInventory(result);
-        } else {
-          // console.error('Expected array, got:', typeof result);
-          setInventory([]);
-        }
-      })
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      .catch((_err) => {
-        setInventory([]);
-      });
-  }, []);
-
-  const csvData = useMemo(
-    () => [
-      ['Item Id', 'Category Id', 'Item Name', 'Quantity', 'Threshold', 'Color'],
-      ...(Array.isArray(inventory)
-        ? inventory.map((item) => [
-            `${item.itemID}`,
-            `${item.categoryID}`,
-            item.itemName,
-            `${item.quantity}`,
-            `${item.lowThreshold}`,
-            item.color,
-          ])
-        : []),
-    ],
-    [inventory],
-  );
-
   return (
     <Container fluid className="my-4">
       <Row className="h-100">
         <Col md={4} sm={12}>
-          <SelectItemCard onItemSelect={(item) => setSelectedItem(item)} />
-          <Card>
-            <Card.Header className="card-header d-flex align-items-center">
-              <h6 className="m-0">{`Activity ${selectedItem ? ` - ${selectedItem.itemName}` : ''}`}</h6>
-            </Card.Header>
-            <Card.Body>
-              <ActivityChart selectedItem={selectedItem} />
-            </Card.Body>
-          </Card>
+          <SelectItemCard />
         </Col>
         <Col md={8} sm={12}>
-          <Card>
-            <Card.Header className="card-header d-flex align-items-center">
-              <Row className="align-items-center w-100 m-0">
-                <Col className="p-0">
-                  <h6 className="m-0">Stock Levels</h6>
-                </Col>
-                <Col className="text-end p-0">
-                  <Button
-                    variant="warning"
-                    onClick={() => {
-                      setShowExport(true);
-                    }}
-                  >
-                    Export
-                  </Button>
-                </Col>
-              </Row>
-            </Card.Header>
-            <Card.Body>
-              <StockLevelsChart />
-            </Card.Body>
-          </Card>
+          <StockLevelsCard />
         </Col>
       </Row>
-
-      <ExportDataModal
-        show={showExport}
-        onCancel={() => setShowExport(false)}
-        onExport={(dateRange, rangeType) => {
-          console.log('Export requested for inventory', { dateRange, rangeType });
-          setShowExport(false);
-        }}
-        csvData={csvData}
-      />
     </Container>
   );
 }
