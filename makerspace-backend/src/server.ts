@@ -106,7 +106,8 @@ const initializeServer = async () => {
     const header = "<tr><th>Item Name</th><th>Item Quantity</th></tr>"
     function toTable(inventory: InventoryItem[]) {
       function toRow(item: InventoryItem) {
-        return `<tr><td>${item.itemName}</td><td>${item.quantity}</td></tr>`
+        const lowQuantity = item.quantity <= item.lowThreshold;
+        return `<tr><td>${item.itemName}</td><td>${lowQuantity? "<b>": ""}${item.quantity}${lowQuantity? "</b>": ""}</td></tr>`
       }
       return "<table>" + header + inventory.map((item) => toRow(item)).join("") + "</table>"
     }
@@ -136,8 +137,8 @@ const initializeServer = async () => {
   nodeCron.schedule('0 12 * * *', () => {
     getEmail().then(emails => {
         const emailData: EmailRecipient[] = emails.data;
-        for (let email in emailData) {
-          sendEmail('Daily inventory summary', emailData[email].email);
+        for (let email in emailData.filter(email => email.daily).map(email => email.email)) {
+          sendEmail('Daily inventory summary', email);
         }
       }
     )
@@ -147,8 +148,8 @@ const initializeServer = async () => {
     nodeCron.schedule('0 12 * * 6', () => {
     getEmail().then(emails => {
         const emailData: EmailRecipient[] = emails.data;
-        for (let email in emailData) {
-          sendEmail('Weekly inventory summary', emailData[email].email);
+        for (let email of emailData.filter(email => email.weekly).map(email => email.email)) {
+          sendEmail('Weekly inventory summary', email);
         }
       }
     )
@@ -224,8 +225,18 @@ const initializeServer = async () => {
   apiRouter.put('/items/:id', authorizeUser, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id, 10);
+      const oldItem: InventoryItem = (await getItem(id)).data
       const item = req.body.item;
       const result = await putItem(id, item);
+      if (item.quantity <= item.lowThreshold && oldItem.quantity > oldItem.lowThreshold) {
+        getEmail().then(emails => {
+          const emailData: EmailRecipient[] = emails.data;
+          for (let email of emailData.filter(email => email.alerts).map(email => email.email)) {
+            sendEmail('Daily inventory summary', email);
+          }
+        })
+
+      }
       return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
