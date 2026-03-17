@@ -115,20 +115,22 @@ function MailingList() {
                     key={email.email}
                     className="d-flex justify-content-between align-items-center"
                   >
-                    <Envelope />
-                    <div className="col-3">{email.email}</div>
-                    <div className="col-3" onClick={() => toggleAlert(email)}>
-                      <text>Low quantity alerts</text>
-                      {email.alerts ? (<Check/>) : (<X/>)}
-                    </div>
-                    <div className="col-3" onClick={() => toggleDaily(email)}>
-                      <text>Daily updates</text>
-                      {email.daily ? (<Check/>) : (<X/>)}
-                    </div>
-                    <div className="col-3" onClick={() => toggleWeekly(email)}>
-                      <text>Weekly updates</text>
-                      {email.weekly ? (<Check/>) : (<X/>)}
-                    </div>
+                    {/*<div>*/}
+                      <Envelope />
+                      <div className="col-3">{email.email}</div>
+                      <div className="col-2" onClick={() => toggleAlert(email)}>
+                        <text>Low quantity alerts</text>
+                        {email.alerts ? (<Check/>) : (<X/>)}
+                      </div>
+                      <div className="col-2" onClick={() => toggleDaily(email)}>
+                        <text>Daily updates</text>
+                        {email.daily ? (<Check/>) : (<X/>)}
+                      </div>
+                      <div className="col-2" onClick={() => toggleWeekly(email)}>
+                        <text>Weekly updates</text>
+                        {email.weekly ? (<Check/>) : (<X/>)}
+                      </div>
+                    {/*</div>*/}
                     <Trash3 className="clickable" onClick={() => handleDeleteClick(email)} />
                   </ListGroup.Item>
                 ),
