@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getItem, postItem, putItem, deleteItem } from './router/itemRouter';
 import fs from 'fs';
 import { authenticateUser, getUser } from './router/userRouter';
-import { getEmail, postEmail, deleteEmail } from './router/emailRouter';
+import { getEmail, postEmail, putEmail, deleteEmail } from './router/emailRouter';
 import { getCategory, postCategory } from './router/categoryRouter';
 import { getTransaction } from './router/transactionRouter';
 import bodyParser from 'body-parser';
@@ -292,6 +292,18 @@ const initializeServer = async () => {
       const email = req.body.email;
       const result = await postEmail(email);
       return res.status(200).send(result.data);
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
+
+  apiRouter.put('/notifications/:email', authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+      const email = req.body.email;
+      console.log(email)
+      const result = await putEmail(email);
+      console.log(result)
+      return res.status(200).json({ success: result.success });
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
