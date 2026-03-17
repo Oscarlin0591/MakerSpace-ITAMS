@@ -17,7 +17,7 @@ import styles from './ExportDataModal.module.css';
 import { type BackendTransaction } from '../service/transaction_service.ts';
 
 // Options for dropdown menu
-const DATE_RANGE_OPTIONS = ['Days', 'Weeks', 'Months', 'Years' ];
+const DATE_RANGE_OPTIONS = ['Days', 'Weeks', 'Months', 'Years'];
 
 type ModalProps = {
   data: BackendTransaction[];
@@ -46,9 +46,8 @@ function ExportDataModal({ data, show, onClose }: ModalProps) {
   //   onExport(startDate, range);
   // };
 
-
   function getInitialDate() {
-    const date = new Date(Date.now())
+    const date = new Date(Date.now());
     return new Date(date.getFullYear(), date.getMonth(), 1);
   }
 
@@ -57,7 +56,7 @@ function ExportDataModal({ data, show, onClose }: ModalProps) {
     const newStartDate = new Date(startDate);
     // console.log(newStartDate.getDate());
     if (rangeUnit === 'Days') {
-      console.log(typeof (newStartDate.getDate()));
+      console.log(typeof newStartDate.getDate());
       console.log(typeof rangeNumber);
       console.log(newStartDate.getDate() + rangeNumber);
       newStartDate.setDate(newStartDate.getDate() + rangeNumber);
@@ -77,10 +76,11 @@ function ExportDataModal({ data, show, onClose }: ModalProps) {
   };
 
   function filterData() {
+    if (!data) return [];
     const filtered = data.filter((transaction: BackendTransaction) => {
-      const date = new Date(transaction.timestamp)
+      const date = new Date(transaction.timestamp);
       return startDate <= date && date <= getEndDate();
-    })
+    });
     console.log(data);
     console.log(filtered);
     return filtered;
@@ -100,7 +100,9 @@ function ExportDataModal({ data, show, onClose }: ModalProps) {
                 showIcon
                 icon={<Calendar />}
                 selected={startDate}
-                onChange={(selectedDate: Date | null) => selectedDate ? setStartDate(selectedDate) : null}
+                onChange={(selectedDate: Date | null) =>
+                  selectedDate ? setStartDate(selectedDate) : null
+                }
                 className="form-control"
                 placeholderText="mm/dd/yyyy"
                 autoComplete="off"
@@ -136,9 +138,7 @@ function ExportDataModal({ data, show, onClose }: ModalProps) {
                 onChange={(e) => setRangeUnit(e.target.value)} // Update state on change
               >
                 {DATE_RANGE_OPTIONS.map((option) => (
-                  <option key={option}>
-                    {option}
-                  </option>
+                  <option key={option}>{option}</option>
                 ))}
               </Form.Select>
             </Form.Group>
