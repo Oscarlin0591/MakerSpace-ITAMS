@@ -4,18 +4,23 @@
  * users to enter a new email into the mailing list.
  */
 
-import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
+import { Modal, Button, Form, InputGroup, Alert } from 'react-bootstrap';
 import { useState, useEffect } from 'react';
 import { postEmail } from '../service/emailRecipient_service';
+import type { NotificationRecipient } from '../types';
+import { Stack } from 'react-bootstrap';
 
 type ModalProps = {
   show: boolean;
   onCancel: () => void;
-  onSave: (newEmail: string) => void;
+  onSave: (newEmail: NotificationRecipient) => void;
 };
 
 function AddEmailModal({ show, onCancel, onSave }: ModalProps) {
   const [email, setEmail] = useState(''); // User input email
+  const [alerts, setAlerts] = useState<boolean>(false);
+  const [daily, setDaily] = useState<boolean>(false);
+  const [weekly, setWeekly] = useState<boolean>(false);
   const [validated, setValidated] = useState(false); // Used for validation and error message
 
   // Clear text on modal open
@@ -36,7 +41,7 @@ function AddEmailModal({ show, onCancel, onSave }: ModalProps) {
     if (isInvalid) return;
 
     // Create full email from user input
-    const fullEmail = `${email}@Quinnipiac.edu`;
+    const fullEmail: NotificationRecipient = {email: `${email}@quinnipiac.edu`, alerts: alerts, daily: daily, weekly: weekly}
     await postEmail(fullEmail);
     onSave(fullEmail);
   };
@@ -65,6 +70,26 @@ function AddEmailModal({ show, onCancel, onSave }: ModalProps) {
             </InputGroup>
           </Form.Group>
         </Form>
+        <Stack className="mt-3" direction="horizontal">
+          <Form.Check
+            type="switch"
+            defaultChecked={alerts}
+            label="Low stock alerts?"
+            onChange={(e) => setAlerts(!alerts)}
+          />
+          <Form.Check
+            type="switch"
+            defaultChecked={daily}
+            label="Daily notifications?"
+            onChange={(e) => setDaily(!daily)}
+          />
+          <Form.Check
+            type="switch"
+            defaultChecked={weekly}
+            label="Weekly notifications?"
+            onChange={(e) => setWeekly(!weekly)}
+          />
+        </Stack>
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onCancel}>

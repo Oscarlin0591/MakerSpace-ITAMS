@@ -6,8 +6,7 @@
 
 import { type SyntheticEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Form, Container, Card, Image, Col } from 'react-bootstrap';
-import Row from 'react-bootstrap/Row';
+import { Button, Form, Container, Card, Image } from 'react-bootstrap';
 import Logo from '../assets/Logo.svg';
 import { authenticateUser } from '../service/user_service';
 import { useUser } from '../contexts/user';

@@ -4,17 +4,17 @@ import config from "../config.json";
 
 const supabase = createClient(config.VITE_SUPABASE_URL, config.VITE_SUPABASE_PUBLISHABLE_KEY);
 
-export async function postEmail(email: string) {
+export async function postEmail(email: EmailRecipient) {
     const { data, error } = await supabase
         .from('email_recipient')
-        .insert({ email })
+        .insert({ email: email.email, alert_notifications: email.alerts, daily_notifications: email.daily, weekly_notifications: email.weekly })
         .select()
         .single();
 
     return { success: !error, data, error };
 }
 
-export async function deleteEmail(email: string) {
+export async function deleteEmail(email: EmailRecipient) {
     const { error } = await supabase
         .from('email_recipient')
         .delete()

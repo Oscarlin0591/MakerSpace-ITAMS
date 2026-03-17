@@ -1,11 +1,11 @@
 import axios from 'axios';
-import { API_BASE_URL } from '../types/index';
+import { API_BASE_URL, type NotificationRecipient } from '../types/index';
 
-export async function getEmails(): Promise<string[]> {
+export async function getEmails(): Promise<NotificationRecipient[]> {
   try {
     const response = await axios.get(`${API_BASE_URL}/notifications`);
     return Array.isArray(response.data)
-      ? response.data.map((r: { email: string }) => r.email)
+      ? response.data
       : [];
   } catch (error) {
     console.error('Error fetching emails:', error);
@@ -13,7 +13,7 @@ export async function getEmails(): Promise<string[]> {
   }
 }
 
-export async function postEmail(email: string) {
+export async function postEmail(email: NotificationRecipient) {
   try {
     const response = await axios.post(`${API_BASE_URL}/notifications`, { email });
     return response.data;

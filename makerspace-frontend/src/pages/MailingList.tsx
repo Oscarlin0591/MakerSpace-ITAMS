@@ -10,7 +10,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 import AddEmailModal from '../components/AddEmailModal.tsx';
 import { Container, ListGroup, Row, Col, Card, Spinner, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../types';
+import { API_BASE_URL, type NotificationRecipient } from '../types';
 import axios from 'axios';
 import { getEmails, deleteEmail } from '../service/emailRecipient_service';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
@@ -40,7 +40,7 @@ function MailingList() {
     setError(null);
 
     getEmails()
-      .then((result) => setEmails(result))
+      .then((result) => setEmails(result.map(email => email.email)))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [navigate]);
@@ -107,9 +107,9 @@ function MailingList() {
       <AddEmailModal
         show={show}
         onCancel={(): void => setShow(false)}
-        onSave={function (newEmail: string): void {
+        onSave={function (newEmail: NotificationRecipient): void {
           setShow(false);
-          addEmail(newEmail);
+          addEmail(newEmail.email);
         }}
       />
 

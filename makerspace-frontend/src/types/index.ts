@@ -53,6 +53,9 @@ export type Transaction = {
 
 export type NotificationRecipient = {
   email: string;
+  alerts: boolean;
+  daily: boolean;
+  weekly: boolean;
 };
 
 export type UserContextType = {
