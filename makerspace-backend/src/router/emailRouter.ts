@@ -26,14 +26,14 @@ export async function deleteEmail(email: string) {
 export async function getEmail(email: string | void) {
     if (typeof email === "string") {
         const data = await supabase.from("email_recipient").select().eq('email', email).single();
-        const newEmail : EmailRecipient = new EmailRecipient(data.data?.email);
+        const newEmail : EmailRecipient = new EmailRecipient(data.data?.email, data.data?.alert_notifications, data.data?.daily_notifications, data.data?.weekly_notifications);
         data.data = newEmail;
         return data;
     } else {
         const data = await supabase.from("email_recipient").select();
         const emailArray : Array<EmailRecipient> | void = [];
         data.data?.forEach((email) => {
-            let newEmail = new EmailRecipient(email.email);
+            let newEmail = new EmailRecipient(email.email, email.alert_notifications, email.daily_notifications, email.weekly_notifications);
             emailArray.push(newEmail);
         });
         data.data = emailArray;

@@ -14,6 +14,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import imageRouter from './router/uploadRouter';
+import nodemailer from 'nodemailer';
+import { InventoryItem } from './models/inventory_item.ts';
+import nodeCron from 'node-cron';
+import { EmailRecipient } from './models/email_recipient.ts';
 dotenv.config();
 
 // Extend express request to include nullable user type
@@ -82,12 +86,73 @@ function authorizeAdmin(req: Request, res: Response, next: NextFunction) {
 }
 
 const initializeServer = async () => {
+// Create a test account automatically
+  const testAccount = await nodemailer.createTestAccount();
+
+// Create a transporter using the test account
+  const transporter = nodemailer.createTransport({
+    host: testAccount.smtp.host,
+    port: testAccount.smtp.port,
+    secure: testAccount.smtp.secure,
+    auth: {
+      user: testAccount.user,
+      pass: testAccount.pass,
+    },
+  });
+
+  async function sendEmail(summary: string, recipient: string) {
+    const itemResponse = await getItem()
+    const inventory: InventoryItem[] = itemResponse.data
+    const header = "<tr><th>Item Name</th><th>Item Quantity</th></tr>"
+    function toTable(inventory: InventoryItem[]) {
+      function toRow(item: InventoryItem) {
+        return `<tr><td>${item.itemName}</td><td>${item.quantity}</td></tr>`
+      }
+      return "<table>" + header + inventory.map((item) => toRow(item)).join("") + "</table>"
+    }
+    const text = inventory.map((item: InventoryItem) => `${item.itemName}: ${item.quantity}`).join("\n")
+    const html = toTable(inventory)
+    const info = await transporter.sendMail({
+      from: '"Quinnipiac ITAMS" <do-not-reply@quinnipiac.edu>',
+      to: recipient,
+      subject: summary,
+      text: text,
+      html: html,
+    });
+
+    console.log("Message sent: %s", info.messageId);
+
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    console.log("Preview URL: %s", previewUrl);
+  }
+
   app.use(
     cors({
       origin: ['http://localhost:3000', 'http://localhost:5173', 'http://172.27.82.14'],
     }),
   );
   app.use(bodyParser.json());
+
+  nodeCron.schedule('0 12 * * *', () => {
+    getEmail().then(emails => {
+        const emailData: EmailRecipient[] = emails.data;
+        for (let email in emailData) {
+          sendEmail('Daily inventory summary', emailData[email].email);
+        }
+      }
+    )
+
+  });
+
+    nodeCron.schedule('0 12 * * 6', () => {
+    getEmail().then(emails => {
+        const emailData: EmailRecipient[] = emails.data;
+        for (let email in emailData) {
+          sendEmail('Weekly inventory summary', emailData[email].email);
+        }
+      }
+    )
+  });
 
   // =============================================================================================================================
   // item routes

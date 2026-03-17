@@ -12,7 +12,6 @@ export async function getTransaction(trans_id?: number) {
         return data;
     } else {
         const data = await supabase.from("transaction").select();
-        console.log(data);
         const transactionArray : Array<Transaction> = [];
         data.data?.forEach((trans) => {
             let newTransaction = new Transaction(trans.transaction_id, trans.transaction_source, trans.timestamp);
