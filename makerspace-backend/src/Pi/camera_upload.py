@@ -27,7 +27,7 @@ ENV_FILE = os.path.join(SCRIPT_DIR, '.env')
 load_dotenv(ENV_FILE)
 
 # Server configuration (read from .env)
-SERVER_URL = os.environ.get("SERVER_URL", "http://172.27.82.14").rstrip('/')
+SERVER_URL = os.environ.get("SERVER_URL", "http://172.27.82.14:3000").rstrip('/')
 PI_API_KEY = os.environ.get("PI_API_KEY", "")
 
 # Upload endpoint (appended to SERVER_URL)
