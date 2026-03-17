@@ -10,10 +10,10 @@ export function Dashboard() {
   return (
     <Container fluid className="my-4">
       <Row className="h-100">
-        <Col md={4} sm={12}>
+        <Col md={4} sm={12} className="mb-3 mb-md-0 item-detail-card">
           <SelectItemCard />
         </Col>
-        <Col md={8} sm={12}>
+        <Col md={8} sm={12} className="mb-5 mb-md-0">
           <StockLevelsCard />
         </Col>
       </Row>
