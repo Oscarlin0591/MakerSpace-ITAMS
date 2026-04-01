@@ -256,7 +256,7 @@ export default function StockLevelsCard() {
 
       <ExportDataModal
         show={showExport}
-        onCancel={() => setShowExport(false)}
+        onClose={() => setShowExport(false)}
         onExport={(dateRange, rangeType) => {
           console.log('Export requested for inventory', { dateRange, rangeType });
           setShowExport(false);

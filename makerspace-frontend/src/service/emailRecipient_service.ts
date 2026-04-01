@@ -23,6 +23,16 @@ export async function postEmail(email: NotificationRecipient) {
   }
 }
 
+export async function putEmail(email: NotificationRecipient) {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/notifications/${encodeURIComponent(email.email)}`, { email });
+    return response.data;
+  } catch (error) {
+    console.error('Error posting email:', error);
+    throw error;
+  }
+}
+
 export async function deleteEmail(email: string) {
   try {
     const response = await axios.delete(`${API_BASE_URL}/notifications/${encodeURIComponent(email)}`);

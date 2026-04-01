@@ -6,12 +6,29 @@ const supabase = createClient(config.VITE_SUPABASE_URL, config.VITE_SUPABASE_PUB
 
 export async function postEmail(email: EmailRecipient) {
     const { data, error } = await supabase
-        .from('email_recipient')
-        .insert({ email: email.email, alert_notifications: email.alerts, daily_notifications: email.daily, weekly_notifications: email.weekly })
-        .select()
-        .single();
+      .from('email_recipient')
+      .insert({
+          email: email.email,
+          alert_notifications: email.alerts,
+          daily_notifications: email.daily,
+          weekly_notifications: email.weekly
+      })
+      .select()
+      .single();
 
     return { success: !error, data, error };
+}
+
+
+export async function putEmail(email: EmailRecipient) {
+    const { error } = await supabase
+      .from('email_recipient')
+      .update({ email: email.email, alert_notifications: email.alerts, daily_notifications: email.daily, weekly_notifications: email.weekly })
+      .eq('email', email.email)
+      .select()
+      .single();
+
+    return { success: !error, error };
 }
 
 export async function deleteEmail(email: EmailRecipient) {
