@@ -129,46 +129,43 @@ def capture_both_cameras() -> tuple[str | None, str | None]:
 # ============================================================================
 
 def upload_single_image(image_path: str, camera_index: int) -> bool:
-    """
-    Upload a single image file to the backend server.
-    Sends a separate POST request with multipart/form-data and 'image' field.
-    
-    Args:
-        image_path: Path to the image file
-        camera_index: Camera index (for logging purposes)
-        
-    Returns:
-        True if upload successful, False otherwise
-    """
     if not PI_API_KEY:
         logger.error("PI_API_KEY not configured in .env; cannot upload")
         return False
-    
+
     if not os.path.exists(image_path):
         logger.error(f"Image file does not exist: {image_path}")
         return False
-    
+
     try:
         logger.info(f"Uploading camera {camera_index} image to {UPLOAD_ENDPOINT}...")
-        
+
         with open(image_path, 'rb') as f:
-            files = {'image': f}
+            files = {'image': (os.path.basename(image_path), f, 'image/jpeg')}
             headers = {'x-api-key': PI_API_KEY}
-            
+            data = {'camera_index': str(camera_index)}  # include camera ID
+
             response = requests.post(
-                UPLOAD_ENDPOINT,
+                UPLOAD_ENDPOINT + '/',  # trailing slash
                 files=files,
+                data=data,
                 headers=headers,
                 timeout=30
             )
-        
+
+        # Log the actual method allowed if we still get 405
+        if response.status_code == 405:
+            allowed = response.headers.get('Allow', 'not specified')
+            logger.error(f"405 Method Not Allowed. Server accepts: {allowed}")
+            return False
+
         if response.status_code == 200:
             logger.info(f"Camera {camera_index} upload successful: {response.json()}")
             return True
         else:
-            logger.error(f"Camera {camera_index} upload failed with status {response.status_code}: {response.text}")
+            logger.error(f"Camera {camera_index} upload failed [{response.status_code}]: {response.text}")
             return False
-            
+
     except requests.exceptions.ConnectionError as e:
         logger.error(f"Connection error uploading camera {camera_index}: {e}")
         return False
