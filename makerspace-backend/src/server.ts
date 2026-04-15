@@ -1,6 +1,5 @@
 import express, { type NextFunction, type Request, type Response, type Router } from 'express';
 import cors from 'cors';
-import { createClient } from '@supabase/supabase-js';
 import { getItem, postItem, putItem, deleteItem } from './router/itemRouter';
 import fs from 'fs';
 import { authenticateUser, getUser } from './router/userRouter';
@@ -50,9 +49,6 @@ if (!process.env.PORT || !process.env.JWT_SECRET) {
 const port = process.env.PORT;
 const jwtSecret = process.env.JWT_SECRET;
 
-const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-const supabase = createClient(config.VITE_SUPABASE_URL, config.VITE_SUPABASE_PUBLISHABLE_KEY);
-
 const main = async () => {
   await initializeServer();
 };
@@ -86,10 +82,10 @@ function authorizeAdmin(req: Request, res: Response, next: NextFunction) {
 }
 
 const initializeServer = async () => {
-// Create a test account automatically
+  // Create a test account automatically
   const testAccount = await nodemailer.createTestAccount();
 
-// Create a transporter using the test account
+  // Create a transporter using the test account
   const transporter = nodemailer.createTransport({
     host: testAccount.smtp.host,
     port: testAccount.smtp.port,
@@ -101,18 +97,20 @@ const initializeServer = async () => {
   });
 
   async function sendEmail(summary: string, recipient: string) {
-    const itemResponse = await getItem()
-    const inventory: InventoryItem[] = itemResponse.data
-    const header = "<tr><th>Item Name</th><th>Item Quantity</th></tr>"
+    const itemResponse = await getItem();
+    const inventory: InventoryItem[] = (itemResponse.data as InventoryItem[]) || [];
+    const header = '<tr><th>Item Name</th><th>Item Quantity</th></tr>';
     function toTable(inventory: InventoryItem[]) {
       function toRow(item: InventoryItem) {
         const lowQuantity = item.quantity <= item.lowThreshold;
-        return `<tr><td>${item.itemName}</td><td>${lowQuantity? "<b>": ""}${item.quantity}${lowQuantity? "</b>": ""}</td></tr>`
+        return `<tr><td>${item.itemName}</td><td>${lowQuantity ? '<b>' : ''}${item.quantity}${lowQuantity ? '</b>' : ''}</td></tr>`;
       }
-      return "<table>" + header + inventory.map((item) => toRow(item)).join("") + "</table>"
+      return '<table>' + header + inventory.map((item) => toRow(item)).join('') + '</table>';
     }
-    const text = inventory.map((item: InventoryItem) => `${item.itemName}: ${item.quantity}`).join("\n")
-    const html = toTable(inventory)
+    const text = inventory
+      .map((item: InventoryItem) => `${item.itemName}: ${item.quantity}`)
+      .join('\n');
+    const html = toTable(inventory);
     const info = await transporter.sendMail({
       from: '"Quinnipiac ITAMS" <do-not-reply@quinnipiac.edu>',
       to: recipient,
@@ -121,10 +119,10 @@ const initializeServer = async () => {
       html: html,
     });
 
-    console.log("Message sent: %s", info.messageId);
+    console.log('Message sent: %s', info.messageId);
 
     const previewUrl = nodemailer.getTestMessageUrl(info);
-    console.log("Preview URL: %s", previewUrl);
+    console.log('Preview URL: %s', previewUrl);
   }
 
   app.use(
@@ -135,24 +133,21 @@ const initializeServer = async () => {
   app.use(bodyParser.json());
 
   nodeCron.schedule('0 12 * * *', () => {
-    getEmail().then(emails => {
-        const emailData: EmailRecipient[] = emails.data;
-        for (let email in emailData.filter(email => email.daily).map(email => email.email)) {
-          sendEmail('Daily inventory summary', email);
-        }
+    getEmail().then((emails) => {
+      const emailData: EmailRecipient[] = emails.data;
+      for (let email in emailData.filter((email) => email.daily).map((email) => email.email)) {
+        sendEmail('Daily inventory summary', email);
       }
-    )
-
+    });
   });
 
-    nodeCron.schedule('0 12 * * 6', () => {
-    getEmail().then(emails => {
-        const emailData: EmailRecipient[] = emails.data;
-        for (let email of emailData.filter(email => email.weekly).map(email => email.email)) {
-          sendEmail('Weekly inventory summary', email);
-        }
+  nodeCron.schedule('0 12 * * 6', () => {
+    getEmail().then((emails) => {
+      const emailData: EmailRecipient[] = emails.data;
+      for (let email of emailData.filter((email) => email.weekly).map((email) => email.email)) {
+        sendEmail('Weekly inventory summary', email);
       }
-    )
+    });
   });
 
   // =============================================================================================================================
@@ -225,17 +220,16 @@ const initializeServer = async () => {
   apiRouter.put('/items/:id', authorizeUser, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id, 10);
-      const oldItem: InventoryItem = (await getItem(id)).data
+      const oldItem: InventoryItem = (await getItem(id)).data as InventoryItem;
       const item = req.body.item;
       const result = await putItem(id, item);
       if (item.quantity <= item.lowThreshold && oldItem.quantity > oldItem.lowThreshold) {
-        getEmail().then(emails => {
+        getEmail().then((emails) => {
           const emailData: EmailRecipient[] = emails.data;
-          for (let email of emailData.filter(email => email.alerts).map(email => email.email)) {
+          for (let email of emailData.filter((email) => email.alerts).map((email) => email.email)) {
             sendEmail('Daily inventory summary', email);
           }
-        })
-
+        });
       }
       return res.status(200).send(result.data);
     } catch (err) {
@@ -300,9 +294,9 @@ const initializeServer = async () => {
   apiRouter.put('/notifications/:email', authorizeAdmin, async (req: Request, res: Response) => {
     try {
       const email = req.body.email;
-      console.log(email)
+      console.log(email);
       const result = await putEmail(email);
-      console.log(result)
+      console.log(result);
       return res.status(200).json({ success: result.success });
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
