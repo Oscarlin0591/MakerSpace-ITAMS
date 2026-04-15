@@ -13,6 +13,7 @@ import { useUser } from '../contexts/user';
 
 function Login({ setToken }: { setToken: (token: string, isAdmin: boolean) => void }) {
   const [errorMessage, setErrorMessage] = useState('');
+  const [validPassword, setValidPassword] = useState(true);
   const navigate = useNavigate();
   const { isAuthenticated } = useUser();
 
@@ -27,9 +28,10 @@ function Login({ setToken }: { setToken: (token: string, isAdmin: boolean) => vo
     event.preventDefault();
     setErrorMessage('');
     const form: HTMLFormElement = event.currentTarget;
-
+    const username = form.username.value.toLowerCase()
+    const password = form.password.value
     try {
-      const result = await authenticateUser(form.username.value, form.password.value);
+      const result = await authenticateUser(username, password);
       if (result && result.token) {
         setToken(result.token, result.isAdmin);
         navigate('/home');
@@ -39,6 +41,18 @@ function Login({ setToken }: { setToken: (token: string, isAdmin: boolean) => vo
         setErrorMessage('Invalid username or password.');
       }
       setErrorMessage('Login failed. Please try again');
+    }
+  }
+
+  function validatePassword(event: SyntheticEvent<HTMLInputElement, Event>) {
+    const password: string = event.target.value
+    const valid = password.indexOf(" ") == -1
+    setValidPassword(valid)
+    if (valid) {
+      setErrorMessage('');
+    }
+    else {
+      setErrorMessage('Password can not contain a space.');
     }
   }
 
@@ -58,9 +72,20 @@ function Login({ setToken }: { setToken: (token: string, isAdmin: boolean) => vo
             <Form.Control name="username" type="text" placeholder="Username" required />
           </Form.Group>
           <Form.Group className="mb-3">
-            <Form.Control name="password" type="password" placeholder="Password" required />
+            <Form.Control
+              name="password"
+              type="password"
+              placeholder="Password"
+              required
+              onChange={validatePassword}
+            />
           </Form.Group>
-          <Button variant="primary" type="submit" className="w-100">
+          <Button
+            variant="primary"
+            type="submit"
+            className="w-100"
+            disabled={!validPassword}
+          >
             Login
           </Button>
 
