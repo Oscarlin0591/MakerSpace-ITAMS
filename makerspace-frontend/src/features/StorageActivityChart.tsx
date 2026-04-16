@@ -1,6 +1,8 @@
 /**
  * StorageActivityChart.tsx
- * A line chart displaying item transactions over a period of time
+ * Step line chart displaying quantity-over-time for a selected inventory item.
+ * Reads from item_quantity_history snapshots; timestamps are sourced from
+ * the `date` column on inventory_item (written on every PUT).
  */
 
 import {
@@ -14,118 +16,164 @@ import {
 } from 'recharts';
 import type { FC } from 'react';
 import { useState, useEffect } from 'react';
-import { Spinner, Alert, Card } from 'react-bootstrap';
-import { getTransactions, type BackendTransaction } from '../service/transaction_service';
+import { Spinner, Alert, Card, ButtonGroup, Button } from 'react-bootstrap';
+import { getItemHistory, getAllItemHistory, type QuantitySnapshot, type ItemQuantitySnapshot } from '../service/item_service';
 import type { InventoryItem } from '../types/index';
 import { getCategory } from '../service/category';
 
-type SeriesPoint = { name: string; value: number; date: string };
+type SeriesPoint = { ts: number; value: number };
 
 type ActivityChartProps = {
   series?: SeriesPoint[];
-  timeframeInDays?: number;
   selectedItem: InventoryItem | null;
 };
 
-// Builds an array of series points over the entire month
-const buildDays = (): SeriesPoint[] => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
+const TIMEFRAMES = [
+  { label: '7D',  days: 7   },
+  { label: '30D', days: 30  },
+  { label: '90D', days: 90  },
+  { label: '1Y',  days: 365 },
+] as const;
 
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+type TimeframeDays = (typeof TIMEFRAMES)[number]['days'];
 
-  return Array.from({ length: daysInMonth }, (_, i) => {
-    // Create a date for each day of the month
-    const d = new Date(year, month, i + 1);
-
-    return {
-      name: String(d.getDate()), // Day number
-      value: 0,
-      date: d.toISOString().split('T')[0], // YYYY-MM-DD
-    };
-  });
+const formatTick = (ts: number, days: TimeframeDays): string => {
+  const d = new Date(ts);
+  if (days <= 90) {
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 };
 
-// Return label for current month
-const getMonthLabel = (data: SeriesPoint[]): string => {
-  if (data.length === 0) return '';
-  return new Date(data[0].date).toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
+// Build step-line series from history snapshots for the chosen timeframe.
+// The last snapshot before the window becomes the baseline at the window start,
+// and the final known value is extended to the present so the line reaches today.
+const buildSeries = (history: QuantitySnapshot[], days: TimeframeDays): SeriesPoint[] => {
+  const now = Date.now();
+  const cutoff = now - days * 24 * 60 * 60 * 1000;
+
+  const baseline = [...history]
+    .filter((s) => new Date(s.recorded_at).getTime() < cutoff)
+    .at(-1);
+
+  const inRange = history.filter((s) => new Date(s.recorded_at).getTime() >= cutoff);
+
+  if (!baseline && inRange.length === 0) return [];
+
+  const points: SeriesPoint[] = [];
+
+  if (baseline) {
+    points.push({ ts: cutoff, value: baseline.quantity });
+  }
+
+  inRange.forEach((s) => {
+    points.push({ ts: new Date(s.recorded_at).getTime(), value: s.quantity });
   });
+
+  // Extend the last known value to now so the step line reaches the present
+  if (points.length > 0) {
+    points.push({ ts: now, value: points[points.length - 1].value });
+  }
+
+  return points;
 };
 
-export const ActivityChart: FC<ActivityChartProps> = ({
-  series,
-  timeframeInDays = 30,
-  selectedItem,
-}) => {
-  const [chartData, setChartData] = useState<SeriesPoint[]>(series || []);
+// Build step-line series representing the total quantity across ALL items.
+// Each change event updates that item's running quantity, then sums the full inventory.
+const buildAggregateSeries = (history: ItemQuantitySnapshot[], days: TimeframeDays): SeriesPoint[] => {
+  const now = Date.now();
+  const cutoff = now - days * 24 * 60 * 60 * 1000;
+
+  // Establish per-item baseline quantities from events before the window
+  const baseline = new Map<number, number>();
+  history
+    .filter((s) => new Date(s.recorded_at).getTime() < cutoff)
+    .forEach((s) => baseline.set(s.item_id, s.quantity));
+
+  const inRange = history.filter((s) => new Date(s.recorded_at).getTime() >= cutoff);
+
+  if (baseline.size === 0 && inRange.length === 0) return [];
+
+  const points: SeriesPoint[] = [];
+  const baselineTotal = [...baseline.values()].reduce((sum, q) => sum + q, 0);
+
+  points.push({ ts: cutoff, value: baselineTotal });
+
+  // Replay in-range events, updating each item's current quantity and re-summing
+  const running = new Map(baseline);
+  inRange.forEach((s) => {
+    running.set(s.item_id, s.quantity);
+    const total = [...running.values()].reduce((sum, q) => sum + q, 0);
+    points.push({ ts: new Date(s.recorded_at).getTime(), value: total });
+  });
+
+  // Extend to present
+  points.push({ ts: now, value: points[points.length - 1].value });
+
+  return points;
+};
+
+export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) => {
+  const [chartData, setChartData] = useState<SeriesPoint[]>(series ?? []);
   const [loading, setLoading] = useState(!series);
   const [error, setError] = useState<string | null>(null);
   const [units, setUnits] = useState<string>('');
+  const [timeframe, setTimeframe] = useState<TimeframeDays>(30);
 
   useEffect(() => {
-    // If series is provided as prop, use it instead of fetching
     if (series && series.length > 0) {
       setChartData(series);
+      setLoading(false);
       return;
     }
 
-    const fetchActivityData = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const [transactions, category] = await Promise.all([
-          getTransactions(),
-          selectedItem ? getCategory(selectedItem.categoryID) : Promise.resolve(null),
-        ]);
-        setUnits(category?.units ?? '');
-
-        // Filter transactions by selectedItem if provided
-        const filteredTransactions = selectedItem
-          ? transactions.filter(
-              (trans: BackendTransaction) => trans.transactionId === selectedItem.itemID,
-            )
-          : transactions;
-
-        // Setup all days so every day in the window is represented
-        const days = buildDays();
-        const daysMap = new Map<string, SeriesPoint>(
-          days.map((point) => [point.date!, { ...point }]),
-        );
-
-        if (filteredTransactions && filteredTransactions.length > 0) {
-          const now = new Date();
-          const cutoffDate = new Date(now.getTime() - timeframeInDays * 24 * 60 * 60 * 1000);
-
-          filteredTransactions.forEach((trans: BackendTransaction) => {
-            const transDate = new Date(trans.timestamp);
-            if (transDate >= cutoffDate) {
-              const dateKey = transDate.toISOString().split('T')[0];
-              const existing = daysMap.get(dateKey);
-              if (existing) {
-                existing.value += 1;
-              }
-            }
-          });
+        if (selectedItem) {
+          const [history, category] = await Promise.all([
+            getItemHistory(selectedItem.itemID),
+            getCategory(selectedItem.categoryID),
+          ]);
+          setUnits(category?.units ?? '');
+          setChartData(buildSeries(history, timeframe));
+        } else {
+          // No item selected — show total inventory across all items
+          setUnits('');
+          const history = await getAllItemHistory();
+          setChartData(buildAggregateSeries(history, timeframe));
         }
-
-        setChartData(Array.from(daysMap.values()));
       } catch (err) {
-        console.error('Error fetching activity data:', err);
+        console.error('Error fetching item history:', err);
         setError('Failed to load activity data. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchActivityData();
-  }, [series, timeframeInDays, selectedItem]);
+    fetchData();
+  }, [series, selectedItem, timeframe]);
 
-  // Loading spinner
+  const timeframeSelector = (
+    <ButtonGroup size="sm">
+      {TIMEFRAMES.map(({ label, days }) => (
+        <Button
+          key={days}
+          onClick={() => setTimeframe(days)}
+          style={
+            timeframe === days
+              ? { backgroundColor: 'var(--qu-dark)', borderColor: 'var(--qu-dark)', color: '#fff' }
+              : { borderColor: 'var(--qu-dark)', color: 'var(--qu-dark)', backgroundColor: 'transparent' }
+          }
+        >
+          {label}
+        </Button>
+      ))}
+    </ButtonGroup>
+  );
+
   if (loading) {
     return (
       <Card className="nested-item-card shadow-sm">
@@ -139,7 +187,6 @@ export const ActivityChart: FC<ActivityChartProps> = ({
     );
   }
 
-  // Error
   if (error) {
     return (
       <Card className="nested-item-card shadow-sm">
@@ -149,12 +196,7 @@ export const ActivityChart: FC<ActivityChartProps> = ({
         >
           <Alert
             variant="danger"
-            style={{
-              borderColor: 'var(--qu-dark)',
-              color: 'var(--qu-dark)',
-              maxWidth: 400,
-              textAlign: 'center',
-            }}
+            style={{ borderColor: 'var(--qu-dark)', color: 'var(--qu-dark)', maxWidth: 400, textAlign: 'center' }}
           >
             <Alert.Heading>Chart Unavailable</Alert.Heading>
             <p className="mb-0">{error}</p>
@@ -164,63 +206,61 @@ export const ActivityChart: FC<ActivityChartProps> = ({
     );
   }
 
-  // Series is empty. Nothing to render
   if (chartData.length === 0) {
     return (
       <Card className="nested-item-card shadow-sm">
-        <Card.Body
-          className="d-flex justify-content-center align-items-center"
-          style={{ height: '400px' }}
-        >
-          <Alert
-            variant="info"
-            style={{
-              borderColor: 'var(--qu-light)',
-              color: 'var(--qu-dark)',
-              maxWidth: 400,
-              textAlign: 'center',
-            }}
+        <Card.Body>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h5 className="nested-item-card-title mb-0">
+              {selectedItem ? 'Quantity History' : 'Total Inventory'}
+            </h5>
+            {timeframeSelector}
+          </div>
+          <div
+            className="d-flex justify-content-center align-items-center"
+            style={{ height: '300px' }}
           >
-            <Alert.Heading>No Data</Alert.Heading>
-            <p className="mb-0">No data is available for this period.</p>
-          </Alert>
+            <Alert
+              variant="info"
+              style={{ borderColor: 'var(--qu-light)', color: 'var(--qu-dark)', maxWidth: 400, textAlign: 'center' }}
+            >
+              <Alert.Heading>No Data</Alert.Heading>
+              <p className="mb-0">No history available for this period.</p>
+            </Alert>
+          </div>
         </Card.Body>
       </Card>
     );
   }
 
-  // Render chart data
   return (
     <Card className="nested-item-card no-select shadow-sm">
       <Card.Body>
-        <h5 className="nested-item-card-title mb-3">{getMonthLabel(chartData)}</h5>
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h5 className="nested-item-card-title mb-0">
+            {selectedItem ? 'Quantity History' : 'Total Inventory'}
+          </h5>
+          {timeframeSelector}
+        </div>
         <ResponsiveContainer width="100%" aspect={1.618} maxHeight={400}>
           <LineChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: 8 }}>
             <CartesianGrid stroke={'var(--qu-light)'} strokeDasharray="5 5" opacity={0.4} />
             <XAxis
-              tickFormatter={(day) => (Number(day) % 5 === 0 || day === '1' ? day : '')}
-              dataKey="name"
-              label={{
-                value: 'Day',
-                position: 'insideBottom',
-                offset: -6,
-                style: {
-                  fill: 'var(--qu-dark)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  textAnchor: 'middle',
-                },
-              }}
+              dataKey="ts"
+              type="number"
+              scale="time"
+              domain={['dataMin', 'dataMax']}
+              tickCount={6}
+              tickFormatter={(ts) => formatTick(ts, timeframe)}
               tick={{ fill: 'var(--qu-dark)', fontSize: 11 }}
               axisLine={{ stroke: 'var(--qu-dark)' }}
               tickLine={{ stroke: 'var(--qu-dark)' }}
-              interval={0}
             />
             <YAxis
               width={60}
               allowDecimals={false}
               label={{
-                value: units.trim() ? `Units (${units})` : 'Units',
+                value: selectedItem && units.trim() ? `Units (${units})` : 'Quantity',
                 angle: -90,
                 position: 'insideLeft',
                 offset: 30,
@@ -242,20 +282,22 @@ export const ActivityChart: FC<ActivityChartProps> = ({
                 borderRadius: 6,
                 color: 'var(--qu-dark)',
               }}
-              labelFormatter={(label, payload) => {
-                const point = payload?.[0]?.payload as SeriesPoint | undefined;
-                return point?.date
-                  ? new Date(point.date).toLocaleDateString('en-US', {
-                      month: 'long',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })
-                  : `Day ${label}`;
-              }}
-              formatter={(value: number) => [`${value} transactions`]}
+              labelFormatter={(ts: number) =>
+                new Date(ts).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })
+              }
+              formatter={(value: number) => [
+                `${value}${selectedItem && units ? ' ' + units : ''}`,
+                selectedItem ? 'Quantity' : 'Total Quantity',
+              ]}
             />
             <Line
-              type="monotone"
+              type="stepAfter"
               dataKey="value"
               stroke={'var(--qu-dark)'}
               strokeWidth={2}

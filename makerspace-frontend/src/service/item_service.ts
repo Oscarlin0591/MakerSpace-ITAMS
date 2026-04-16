@@ -1,6 +1,13 @@
 import axios from 'axios';
 import { type InventoryItem, type NewItem, API_BASE_URL } from '../types/index';
 
+export type QuantitySnapshot = {
+  quantity: number;
+  recorded_at: string;
+};
+
+export type ItemQuantitySnapshot = QuantitySnapshot & { item_id: number };
+
 export async function getItems(): Promise<Array<InventoryItem>> {
   try {
     const response = await axios.get(`${API_BASE_URL}/items`);
@@ -48,5 +55,26 @@ export async function deleteItem(id: number) {
   } catch (error) {
     console.error('Error deleting item:', error);
     throw error;
+  }
+}
+
+export async function getItemHistory(itemId: number): Promise<QuantitySnapshot[]> {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/items/${itemId}/history`);
+    console.log(`[getItemHistory] item ${itemId}:`, response.data);
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error('Error fetching item history:', error);
+    return [];
+  }
+}
+
+export async function getAllItemHistory(): Promise<ItemQuantitySnapshot[]> {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/items/history`);
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error('Error fetching all item history:', error);
+    return [];
   }
 }

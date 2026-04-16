@@ -8,9 +8,9 @@ import { useCookies } from 'react-cookie';
 import { useEffect } from 'react';
 import LogOut from './components/LogOut.tsx';
 import axios from 'axios';
-import Yolo from './pages/Yolo.tsx';
 import AuthenticateRoute from './components/AuthenticateRoute.tsx';
 import { UserProvider } from './contexts/user';
+import { NotificationPage } from './pages/NotificationPage.tsx';
 
 function App() {
   const [cookies, setCookie, removeCookie] = useCookies(['token', 'isAdmin']);
@@ -56,7 +56,7 @@ function App() {
             path="/manage-inventory"
             element={<AuthenticateRoute element={<ManageInventory />} />}
           />
-          <Route path="/yolo" element={<AuthenticateRoute element={<Yolo />} />} />
+          <Route path="/notifications" element={<AuthenticateRoute element={<NotificationPage />} />} />
 
           {/* Admin Protected Routes */}
           <Route

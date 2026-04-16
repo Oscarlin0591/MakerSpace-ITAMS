@@ -34,8 +34,8 @@ export default function TopNavbar() {
           <Nav.Link as={Link} to="/manage-inventory" className="fw-bold nav-option">
             Manage Inventory
           </Nav.Link>
-          <Nav.Link as={Link} to="/yolo" className="fw-bold nav-option">
-            YOLO
+          <Nav.Link as={Link} to="/notification" className="fw-bold nav-option">
+            Notifications
           </Nav.Link>
           <hr className="d-lg-none my-2 border-2 w-25" style={{ color: 'var(--qu-gold)' }} />
           <Nav.Link as={Link} to="/logout" className="fw-bold ms-lg-auto logout-button">

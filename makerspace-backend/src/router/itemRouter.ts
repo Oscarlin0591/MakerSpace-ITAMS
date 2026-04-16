@@ -40,6 +40,8 @@ export async function postItem(item: InventoryItem) {
 }
 
 export async function putItem(id: number, item: InventoryItem) {
+    const now = new Date().toISOString();
+
     const { data, error } = await supabase
         .from('inventory_item')
         .update({
@@ -48,10 +50,20 @@ export async function putItem(id: number, item: InventoryItem) {
             quantity: item.quantity,
             threshold: item.lowThreshold,
             color: item.color ?? null,
+            date: now,
         })
         .eq('item_id', id)
         .select()
         .single();
+
+    if (!error) {
+        const { error: historyError } = await supabase
+            .from('transaction')
+            .insert({ item_id: id, quantity: item.quantity, recorded_at: data?.date ?? now });
+        if (historyError) {
+            console.error('Failed to insert transaction snapshot:', historyError);
+        }
+    }
 
     return { success: !error, data, error };
 }
@@ -63,4 +75,23 @@ export async function deleteItem(id: number) {
         .eq('item_id', id);
 
     return { success: !error, error };
+}
+
+export async function getItemHistory(itemId: number) {
+    const data = await supabase
+        .from('transaction')
+        .select('quantity, recorded_at')
+        .eq('item_id', itemId)
+        .order('recorded_at', { ascending: true });
+
+    return data;
+}
+
+export async function getAllItemHistory() {
+    const data = await supabase
+        .from('transaction')
+        .select('item_id, quantity, recorded_at')
+        .order('recorded_at', { ascending: true });
+
+    return data;
 }

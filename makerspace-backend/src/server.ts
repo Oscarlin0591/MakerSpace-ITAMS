@@ -1,7 +1,7 @@
 import express, { type NextFunction, type Request, type Response, type Router } from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
-import { getItem, postItem, putItem, deleteItem } from './router/itemRouter';
+import { getItem, postItem, putItem, deleteItem, getItemHistory, getAllItemHistory } from './router/itemRouter';
 import fs from 'fs';
 import { authenticateUser, getUser } from './router/userRouter';
 import { getEmail, postEmail, putEmail, deleteEmail } from './router/emailRouter';
@@ -194,6 +194,25 @@ const initializeServer = async () => {
     try {
       const result = await getItem();
       return res.status(200).send(result.data);
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
+
+  apiRouter.get('/items/history', authorizeUser, async (_req: Request, res: Response) => {
+    try {
+      const result = await getAllItemHistory();
+      return res.status(200).send(result.data ?? []);
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
+
+  apiRouter.get('/items/:id/history', authorizeUser, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const result = await getItemHistory(id);
+      return res.status(200).send(result.data ?? []);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }

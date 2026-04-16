@@ -7,8 +7,9 @@ export class InventoryItem  {
   quantity: number;
   lowThreshold: number;
   color?: string;
+  date?: string;
 
-  constructor (itemID:number, itemName: string, categoryID: number, quantity: number, lowThreshold: number, color?: string, categoryName?: string,) {
+  constructor (itemID:number, itemName: string, categoryID: number, quantity: number, lowThreshold: number, color?: string, categoryName?: string, date?: string) {
     this.itemID = itemID;
     this.itemName = itemName;
     this.categoryID = categoryID;
@@ -17,5 +18,6 @@ export class InventoryItem  {
     this.quantity = quantity;
     this.lowThreshold = lowThreshold;
     this.color = color;
+    this.date = date;
   }
 };

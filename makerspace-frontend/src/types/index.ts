@@ -27,6 +27,7 @@ export type InventoryItem = {
   quantity: number;
   lowThreshold: number;
   color?: string;
+  date?: string;
 };
 
 export type NewItem = {
