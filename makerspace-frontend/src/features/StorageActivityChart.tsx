@@ -45,10 +45,20 @@ const formatTick = (ts: number, days: TimeframeDays): string => {
   return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 };
 
-// Build step-line series from history snapshots for the chosen timeframe.
-// Collapses all snapshots within the same calendar day into one point (last value of that day).
-// The last snapshot before the window becomes the baseline at the window start,
-// and the final known value is extended to the present so the line reaches today.
+// Iterates every UTC calendar day from startDayKey (YYYY-MM-DD) through today inclusive.
+function eachDay(startDayKey: string, callback: (dayKey: string, ts: number) => void) {
+  const iter = new Date(startDayKey + 'T00:00:00Z');
+  const todayKey = new Date().toISOString().slice(0, 10);
+  while (true) {
+    const dayKey = iter.toISOString().slice(0, 10);
+    callback(dayKey, iter.getTime());
+    if (dayKey === todayKey) break;
+    iter.setUTCDate(iter.getUTCDate() + 1);
+  }
+}
+
+// Build series for a single item.
+// Emits one point per calendar day; days with no transaction carry the last known quantity.
 const buildSeries = (history: QuantitySnapshot[], days: TimeframeDays): SeriesPoint[] => {
   const now = Date.now();
   const cutoff = now - days * 24 * 60 * 60 * 1000;
@@ -61,38 +71,35 @@ const buildSeries = (history: QuantitySnapshot[], days: TimeframeDays): SeriesPo
 
   if (!baseline && inRange.length === 0) return [];
 
-  // Group by YYYY-MM-DD, keeping the last snapshot of each day
-  const dailyMap = new Map<string, { ts: number; quantity: number }>();
+  // Last value per day within the window
+  const dailyMap = new Map<string, number>();
   inRange.forEach((s) => {
-    const dayKey = s.recorded_at.slice(0, 10);
-    dailyMap.set(dayKey, { ts: new Date(s.recorded_at).getTime(), quantity: s.quantity });
+    dailyMap.set(s.recorded_at.slice(0, 10), s.quantity);
   });
 
+  // Start from the cutoff day if we have a baseline; otherwise from the first data day
+  const startDay = baseline
+    ? new Date(cutoff).toISOString().slice(0, 10)
+    : inRange[0].recorded_at.slice(0, 10);
+
+  let carry = baseline?.quantity ?? dailyMap.get(startDay) ?? 0;
   const points: SeriesPoint[] = [];
 
-  if (baseline) {
-    points.push({ ts: cutoff, value: baseline.quantity });
-  }
-
-  [...dailyMap.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .forEach(([, { ts, quantity }]) => points.push({ ts, value: quantity }));
-
-  // Extend the last known value to now so the step line reaches the present
-  if (points.length > 0) {
-    points.push({ ts: now, value: points[points.length - 1].value });
-  }
+  eachDay(startDay, (dayKey, ts) => {
+    if (dailyMap.has(dayKey)) carry = dailyMap.get(dayKey)!;
+    points.push({ ts, value: carry });
+  });
 
   return points;
 };
 
-// Build step-line series representing the total quantity across ALL items.
-// Collapses all events within the same calendar day into one point (end-of-day total).
+// Build series for total inventory across ALL items.
+// Emits one point per calendar day; days with no transactions carry running totals forward.
 const buildAggregateSeries = (history: ItemQuantitySnapshot[], days: TimeframeDays): SeriesPoint[] => {
   const now = Date.now();
   const cutoff = now - days * 24 * 60 * 60 * 1000;
 
-  // Establish per-item baseline quantities from events before the window
+  // Per-item quantities before the window
   const baseline = new Map<number, number>();
   history
     .filter((s) => new Date(s.recorded_at).getTime() < cutoff)
@@ -102,11 +109,7 @@ const buildAggregateSeries = (history: ItemQuantitySnapshot[], days: TimeframeDa
 
   if (baseline.size === 0 && inRange.length === 0) return [];
 
-  const points: SeriesPoint[] = [];
-  const baselineTotal = [...baseline.values()].reduce((sum, q) => sum + q, 0);
-  points.push({ ts: cutoff, value: baselineTotal });
-
-  // Group events by YYYY-MM-DD
+  // Group in-range events by day
   const eventsByDay = new Map<string, ItemQuantitySnapshot[]>();
   inRange.forEach((s) => {
     const dayKey = s.recorded_at.slice(0, 10);
@@ -114,19 +117,18 @@ const buildAggregateSeries = (history: ItemQuantitySnapshot[], days: TimeframeDa
     eventsByDay.get(dayKey)!.push(s);
   });
 
-  // Replay each day in order, updating running totals, emit one point per day
-  const running = new Map(baseline);
-  [...eventsByDay.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .forEach(([, events]) => {
-      events.forEach((s) => running.set(s.item_id, s.quantity));
-      const total = [...running.values()].reduce((sum, q) => sum + q, 0);
-      const lastTs = Math.max(...events.map((s) => new Date(s.recorded_at).getTime()));
-      points.push({ ts: lastTs, value: total });
-    });
+  const startDay = baseline.size > 0
+    ? new Date(cutoff).toISOString().slice(0, 10)
+    : inRange[0].recorded_at.slice(0, 10);
 
-  // Extend to present
-  points.push({ ts: now, value: points[points.length - 1].value });
+  const running = new Map(baseline);
+  const points: SeriesPoint[] = [];
+
+  eachDay(startDay, (dayKey, ts) => {
+    eventsByDay.get(dayKey)?.forEach((s) => running.set(s.item_id, s.quantity));
+    const total = [...running.values()].reduce((sum, q) => sum + q, 0);
+    points.push({ ts, value: total });
+  });
 
   return points;
 };
@@ -138,6 +140,11 @@ export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) 
   const [units, setUnits] = useState<string>('');
   const [timeframe, setTimeframe] = useState<TimeframeDays>(30);
 
+  // Full unfiltered history cached here — re-fetched only when selectedItem changes,
+  // not on every timeframe button click.
+  const [rawHistory, setRawHistory] = useState<QuantitySnapshot[] | ItemQuantitySnapshot[] | null>(null);
+
+  // Fetch full history whenever the selected item changes
   useEffect(() => {
     if (series && series.length > 0) {
       setChartData(series);
@@ -145,7 +152,7 @@ export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) 
       return;
     }
 
-    const fetchData = async () => {
+    const fetchHistory = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -156,12 +163,11 @@ export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) 
             getCategory(selectedItem.categoryID),
           ]);
           setUnits(category?.units ?? '');
-          setChartData(buildSeries(history, timeframe));
+          setRawHistory(history);
         } else {
-          // No item selected — show total inventory across all items
           setUnits('');
           const history = await getAllItemHistory();
-          setChartData(buildAggregateSeries(history, timeframe));
+          setRawHistory(history);
         }
       } catch (err) {
         console.error('Error fetching item history:', err);
@@ -171,8 +177,18 @@ export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) 
       }
     };
 
-    fetchData();
-  }, [series, selectedItem, timeframe]);
+    fetchHistory();
+  }, [series, selectedItem]);
+
+  // Rebuild chart points whenever history or timeframe changes — no extra fetch needed
+  useEffect(() => {
+    if (!rawHistory) return;
+    if (selectedItem) {
+      setChartData(buildSeries(rawHistory as QuantitySnapshot[], timeframe));
+    } else {
+      setChartData(buildAggregateSeries(rawHistory as ItemQuantitySnapshot[], timeframe));
+    }
+  }, [rawHistory, timeframe, selectedItem]);
 
   const timeframeSelector = (
     <ButtonGroup size="sm">
@@ -267,7 +283,7 @@ export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) 
               dataKey="ts"
               type="number"
               scale="time"
-              domain={['dataMin', 'dataMax']}
+              domain={[Date.now() - timeframe * 24 * 60 * 60 * 1000, Date.now()]}
               tickCount={6}
               tickFormatter={(ts) => formatTick(ts, timeframe)}
               tick={{ fill: 'var(--qu-dark)', fontSize: 11 }}
@@ -315,7 +331,7 @@ export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) 
               ]}
             />
             <Line
-              type="stepAfter"
+              type="linear"
               dataKey="value"
               stroke={'var(--qu-dark)'}
               strokeWidth={2}
