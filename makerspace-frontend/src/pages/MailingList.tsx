@@ -14,7 +14,6 @@ import { API_BASE_URL, type NotificationRecipient } from '../types';
 import axios from 'axios';
 import { getEmails, deleteEmail, putEmail } from '../service/emailRecipient_service';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
-import { Cross } from 'recharts';
 
 function MailingList() {
   const [loading, setLoading] = useState(true);

@@ -11,7 +11,6 @@ export type BackendTransaction = {
 export async function getTransactions(): Promise<Array<BackendTransaction>> {
   try {
     const response = await axios.get(`${API_BASE_URL}/transactions`);
-    console.log(response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching transactions:', error);

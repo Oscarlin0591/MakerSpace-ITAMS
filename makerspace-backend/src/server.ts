@@ -1,7 +1,13 @@
 import express, { type NextFunction, type Request, type Response, type Router } from 'express';
 import cors from 'cors';
-import { createClient } from '@supabase/supabase-js';
-import { getItem, postItem, putItem, deleteItem, getItemHistory, getAllItemHistory } from './router/itemRouter';
+import {
+  getItem,
+  postItem,
+  putItem,
+  deleteItem,
+  getItemHistory,
+  getAllItemHistory,
+} from './router/itemRouter';
 import fs from 'fs';
 import { authenticateUser, getUser } from './router/userRouter';
 import { getEmail, postEmail, putEmail, deleteEmail } from './router/emailRouter';

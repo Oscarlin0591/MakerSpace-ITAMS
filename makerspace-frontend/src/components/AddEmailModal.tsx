@@ -4,7 +4,7 @@
  * users to enter a new email into the mailing list.
  */
 
-import { Modal, Button, Form, InputGroup, Alert } from 'react-bootstrap';
+import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
 import { useState, useEffect } from 'react';
 import { postEmail } from '../service/emailRecipient_service';
 import type { NotificationRecipient } from '../types';
@@ -41,7 +41,12 @@ function AddEmailModal({ show, onCancel, onSave }: ModalProps) {
     if (isInvalid) return;
 
     // Create full email from user input
-    const fullEmail: NotificationRecipient = {email: `${email}@quinnipiac.edu`, alerts: alerts, daily: daily, weekly: weekly}
+    const fullEmail: NotificationRecipient = {
+      email: `${email}@quinnipiac.edu`,
+      alerts: alerts,
+      daily: daily,
+      weekly: weekly,
+    };
     await postEmail(fullEmail);
     onSave(fullEmail);
   };
@@ -75,19 +80,19 @@ function AddEmailModal({ show, onCancel, onSave }: ModalProps) {
             type="switch"
             defaultChecked={alerts}
             label="Low stock alerts?"
-            onChange={(e) => setAlerts(!alerts)}
+            onChange={() => setAlerts(!alerts)}
           />
           <Form.Check
             type="switch"
             defaultChecked={daily}
             label="Daily notifications?"
-            onChange={(e) => setDaily(!daily)}
+            onChange={() => setDaily(!daily)}
           />
           <Form.Check
             type="switch"
             defaultChecked={weekly}
             label="Weekly notifications?"
-            onChange={(e) => setWeekly(!weekly)}
+            onChange={() => setWeekly(!weekly)}
           />
         </Stack>
       </Modal.Body>
