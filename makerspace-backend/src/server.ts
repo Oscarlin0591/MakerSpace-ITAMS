@@ -324,9 +324,7 @@ const initializeServer = async () => {
   apiRouter.put('/notifications/:email', authorizeAdmin, async (req: Request, res: Response) => {
     try {
       const email = req.body.email;
-      console.log(email);
       const result = await putEmail(email);
-      console.log(result);
       return res.status(200).json({ success: result.success });
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
@@ -381,7 +379,6 @@ const initializeServer = async () => {
   apiRouter.get('/transactions', authorizeUser, async (_req: Request, res: Response) => {
     try {
       const result = await getTransaction();
-      // console.log(result)
       return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
