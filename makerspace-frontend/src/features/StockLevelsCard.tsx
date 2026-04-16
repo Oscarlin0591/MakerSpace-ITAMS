@@ -5,7 +5,7 @@
  * clicking individual bars
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -22,6 +22,7 @@ import { getItems } from '../service/item_service';
 import { getCategories } from '../service/category';
 import type { Category, InventoryItem } from '../types';
 import ExportDataModal from '../components/ExportDataModal';
+import { type BackendTransaction, getTransactions } from '../service/transaction_service.ts';
 
 type ChartData = {
   name: string;
@@ -33,10 +34,11 @@ type ChartData = {
 
 export default function StockLevelsCard() {
   const [data, setData] = useState<ChartData[]>([]);
-  const [rawItems, setRawItems] = useState<InventoryItem[]>([]);
+  // const [rawItems, setRawItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showExport, setShowExport] = useState(false);
+  const [transactions, setTransactions] = useState<BackendTransaction[]>([]);
 
   // Fetch data
   useEffect(() => {
@@ -48,7 +50,7 @@ export default function StockLevelsCard() {
       try {
         const [items, categories] = await Promise.all([getItems(), getCategories()]);
 
-        if (!cancelled) setRawItems(items);
+        // if (!cancelled) setRawItems(items);
 
         // Aggregate totals by category
         const categoryMap: {
@@ -98,25 +100,13 @@ export default function StockLevelsCard() {
 
     fetchData();
 
+    getTransactions().then((data) => setTransactions(data));
+
+
     return () => {
       cancelled = true;
     };
   }, []);
-
-  const csvData = useMemo(
-    () => [
-      ['Item Id', 'Category Id', 'Item Name', 'Quantity', 'Threshold', 'Color'],
-      ...rawItems.map((item) => [
-        `${item.itemID}`,
-        `${item.categoryID}`,
-        item.itemName,
-        `${item.quantity}`,
-        `${item.lowThreshold}`,
-        item.color,
-      ]),
-    ],
-    [rawItems],
-  );
 
   // Custom tooltip for bar chart hover
   const CustomTooltip = ({
@@ -256,12 +246,8 @@ export default function StockLevelsCard() {
 
       <ExportDataModal
         show={showExport}
+        data={transactions}
         onClose={() => setShowExport(false)}
-        onExport={(dateRange, rangeType) => {
-          console.log('Export requested for inventory', { dateRange, rangeType });
-          setShowExport(false);
-        }}
-        csvData={csvData}
       />
     </Card>
   );

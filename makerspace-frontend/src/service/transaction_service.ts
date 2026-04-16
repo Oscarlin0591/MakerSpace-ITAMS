@@ -3,8 +3,9 @@ import { API_BASE_URL } from '../types/index';
 
 export type BackendTransaction = {
   transactionId: number;
-  transactionSystem: string;
-  timestamp: string;
+  item_id: number;
+  recorded_at: string;
+  quantity: number;
 };
 
 export async function getTransactions(): Promise<Array<BackendTransaction>> {
