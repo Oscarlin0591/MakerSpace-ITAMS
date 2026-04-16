@@ -9,6 +9,7 @@ import multer from 'multer';
 import path from 'path';
 import dotenv from 'dotenv';
 import { spawn } from 'child_process';
+import { getItemsByCameraId, putItem } from './itemRouter';
 dotenv.config();
 
 const imageRouter = express.Router();
@@ -19,6 +20,12 @@ const UPLOAD_DIR = '/var/www/ITAMS/data/images/';
 // Check for .env
 if (!process.env.PI_API_KEY) {
   throw new Error('Ensure PI_API_KEY is defined in .env');
+}
+if (!process.env.PYTHON_VENV_PATH) {
+  throw new Error('Ensure PYTHON_VENV_PATH is defined in .env');
+}
+if (!process.env.PYTHON_SCRIPT_PATH) {
+  throw new Error('Ensure PYTHON_SCRIPT_PATH is defined in .env');
 }
 // Rasperry Pi authorization
 function authPi(req: Request, res: Response, next: NextFunction) {
@@ -43,34 +50,102 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage: storage });
+interface PendingImage {
+  path: string;
+  cameraIndex: number;
+}
 
-imageRouter.post('/upload-image', authPi, upload.single('image'), (req: Request, res: Response) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No image provided' });
+const upload = multer({ storage: storage });
+let pendingImages: PendingImage[] = []; // Two cameras. Track multiple pending images
+let inferenceTimeout: NodeJS.Timeout | null = null; // Handle timeout due to not receiving two images
+let isProcessing = false; // Used for blocking spawn of multiple inference scripts
+
+const triggerInference = () => {
+  if (pendingImages.length === 0 || isProcessing) return;
+
+  // Clear timeout
+  if (inferenceTimeout) {
+    clearTimeout(inferenceTimeout);
+    inferenceTimeout = null;
   }
 
-  const imagePath = req.file.path;
-  console.log(`Image saved: ${imagePath}`);
+  // Lock process and move pending images to the queue
+  isProcessing = true;
+  const imagesToProcess = [...pendingImages];
+  pendingImages = [];
 
-  // Spawn python
-  const pythonProcess = spawn('python3', [
-    '/var/www/ITAMS/backend-python/yolo_inference.py',
-    imagePath,
-  ]);
+  console.log(`Executing YOLO on: ${imagesToProcess.map((img) => img.path).join(', ')}`);
 
-  pythonProcess.stdout.on('data', (data) => {
-    console.log(`YOLO Output: ${data.toString()}`);
-    // TODO: parse output and update supabase
+  // Path to venv python executable and inference script
+  const venvPython = process.env.PYTHON_VENV_PATH as string;
+  const scriptPath = process.env.PYTHON_SCRIPT_PATH as string;
+
+  // Spawn python process — pass image paths in order; output is a JSON array indexed the same way
+  const pythonProcess = spawn(venvPython, [scriptPath, ...imagesToProcess.map((img) => img.path)]);
+
+  // Pull data from stdout
+  pythonProcess.stdout.on('data', async (data) => {
+    try {
+      const perImageCounts: Record<string, number>[] = JSON.parse(data.toString());
+
+      for (let i = 0; i < imagesToProcess.length; i++) {
+        const { cameraIndex } = imagesToProcess[i];
+        const labelCounts = perImageCounts[i] ?? {};
+        const items = await getItemsByCameraId(cameraIndex);
+
+        for (const item of items) {
+          if (!item.yoloLabels?.length) continue;
+          const newQuantity = item.yoloLabels.reduce(
+            (sum, label) => sum + (labelCounts[label] ?? 0), 0
+          );
+          const result = await putItem(item.itemID, { ...item, quantity: newQuantity });
+          if (!result.success) {
+            console.error(`Failed to update ${item.itemName}:`, result.error?.message);
+          } else {
+            console.log(`Updated ${item.itemName} → ${newQuantity}`);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Inference Output Error', data.toString());
+    }
   });
 
   pythonProcess.stderr.on('data', (data) => {
-    console.error(`YOLO Error: ${data.toString()}`);
+    console.error('Python Error:', data.toString());
   });
+
+  // Release lock when the process closes
+  pythonProcess.on('close', () => {
+    isProcessing = false;
+
+    // Check if new image arrived while processing
+    if (pendingImages.length > 0) triggerInference();
+  });
+};
+
+imageRouter.post('/upload-image', authPi, upload.single('image'), (req: Request, res: Response) => {
+  if (!req.file) return res.status(400).json({ error: 'No image provided' });
+
+  const cameraIndex = parseInt(req.body.camera_index ?? '0', 10);
+  pendingImages.push({ path: req.file.path, cameraIndex });
+
+  // Start 30s timeout countdown when first image received
+  if (pendingImages.length === 1) {
+    inferenceTimeout = setTimeout(() => {
+      console.log('Timer expired: processing partial batch');
+      triggerInference();
+    }, 30000);
+  }
+
+  // If expected image count, trigger immediately
+  if (pendingImages.length >= 2) {
+    triggerInference();
+  }
 
   // Return OK status
   return res.status(200).json({
-    message: 'Image received, processing in background',
+    message: 'Image queued for inference',
     file: req.file.filename,
   });
 });

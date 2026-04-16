@@ -339,7 +339,7 @@ const initializeServer = async () => {
     try {
       const category = req.body.newCategory;
       await postCategory(category);
-      return res.status(200);
+      return res.status(200).send();
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }

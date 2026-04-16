@@ -4,7 +4,7 @@
  * obtain user permissions (Admin, Student)
  */
 
-import { type SyntheticEvent, useEffect, useState } from 'react';
+import { type ChangeEvent, type SyntheticEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Form, Container, Card, Image } from 'react-bootstrap';
 import Logo from '../assets/Logo.svg';
@@ -44,7 +44,7 @@ function Login({ setToken }: { setToken: (token: string, isAdmin: boolean) => vo
     }
   }
 
-  function validatePassword(event: SyntheticEvent<HTMLInputElement, Event>) {
+  function validatePassword(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const password: string = event.target.value
     const valid = password.indexOf(" ") == -1
     setValidPassword(valid)
@@ -77,7 +77,7 @@ function Login({ setToken }: { setToken: (token: string, isAdmin: boolean) => vo
               type="password"
               placeholder="Password"
               required
-              onChange={validatePassword}
+              onChange={e => validatePassword(e)}
             />
           </Form.Group>
           <Button
