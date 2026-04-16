@@ -20,8 +20,6 @@ type ModalProps = {
 function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps) {
   // Category dropdown states
   const [categorySelection, setCategorySelection] = useState('');
-  const [customCategory, setCustomCategory] = useState('');
-  const [customUnits, setCustomUnits] = useState('');
   const [isAddingNew, setIsAddingNew] = useState(false);
 
   // new item state - consider using this instead of so many methods
@@ -111,7 +109,7 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
   );
   let unitsToDisplay = '';
   if (isAddingNew) {
-    unitsToDisplay = customUnits;
+    unitsToDisplay = newCategory.units;
   } else if (selectedCategory) {
     unitsToDisplay = selectedCategory.units;
   }
@@ -129,7 +127,8 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
     // lowThreshold.trim() === '' ||
     isNaN(numThreshold) || numThreshold < 0 || numThreshold > 9999;
   const isExistingCategoryInvalid = !isAddingNew && !newItem.categoryName;
-  const isNewCategoryInvalid = isAddingNew && (!newCategory.categoryName || !newCategory.units);
+  const isNewCategoryInvalid = isAddingNew && (!newCategory.categoryName);
+  const areNewUnitsInvalid = isAddingNew && (!newCategory.units);
 
   // Handle saving
   const handleSave = async () => {
@@ -141,7 +140,8 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
       isQuantityInvalid ||
       isThresholdInvalid ||
       isExistingCategoryInvalid ||
-      isNewCategoryInvalid
+      isNewCategoryInvalid && !newCategory.categoryName ||
+      areNewUnitsInvalid && !newCategory.units
     ) {
       return;
     }
@@ -231,7 +231,7 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
                   value={newCategory.categoryName}
                   onChange={handleNewCatChange}
                   required
-                  isInvalid={validated && !customCategory}
+                  isInvalid={validated && !newCategory.categoryName && isNewCategoryInvalid}
                 />
                 <Form.Control.Feedback type="invalid">
                   Please provide a new category name.
@@ -245,7 +245,7 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
                   value={newCategory.units}
                   onChange={handleNewCatChange}
                   required
-                  isInvalid={validated && !customUnits}
+                  isInvalid={validated && !newCategory.units && areNewUnitsInvalid}
                 />
                 <Form.Control.Feedback type="invalid">Please provide units.</Form.Control.Feedback>
               </Form.Group>
