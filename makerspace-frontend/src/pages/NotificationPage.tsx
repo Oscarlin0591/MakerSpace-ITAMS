@@ -1,4 +1,4 @@
-import { Alert, Badge, Card, Col, Container, Row } from 'react-bootstrap';
+import { Alert, Badge, Card, Container } from 'react-bootstrap';
 import { Trash3, BellSlash } from 'react-bootstrap-icons';
 import { useNotifications } from '../contexts/notifications';
 

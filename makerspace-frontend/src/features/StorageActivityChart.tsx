@@ -17,7 +17,12 @@ import {
 import type { FC } from 'react';
 import { useState, useEffect } from 'react';
 import { Spinner, Alert, Card, ButtonGroup, Button } from 'react-bootstrap';
-import { getItemHistory, getAllItemHistory, type QuantitySnapshot, type ItemQuantitySnapshot } from '../service/item_service';
+import {
+  getItemHistory,
+  getAllItemHistory,
+  type QuantitySnapshot,
+  type ItemQuantitySnapshot,
+} from '../service/item_service';
 import type { InventoryItem } from '../types/index';
 import { getCategory } from '../service/category';
 
@@ -29,10 +34,10 @@ type ActivityChartProps = {
 };
 
 const TIMEFRAMES = [
-  { label: '7D',  days: 7   },
-  { label: '30D', days: 30  },
-  { label: '90D', days: 90  },
-  { label: '1Y',  days: 365 },
+  { label: '7D', days: 7 },
+  { label: '30D', days: 30 },
+  { label: '90D', days: 90 },
+  { label: '1Y', days: 365 },
 ] as const;
 
 type TimeframeDays = (typeof TIMEFRAMES)[number]['days'];
@@ -53,9 +58,7 @@ const buildSeries = (history: QuantitySnapshot[], days: TimeframeDays): SeriesPo
   const now = Date.now();
   const cutoff = now - days * 24 * 60 * 60 * 1000;
 
-  const baseline = [...history]
-    .filter((s) => new Date(s.recorded_at).getTime() < cutoff)
-    .at(-1);
+  const baseline = [...history].filter((s) => new Date(s.recorded_at).getTime() < cutoff).at(-1);
 
   const inRange = history.filter((s) => new Date(s.recorded_at).getTime() >= cutoff);
 
@@ -88,7 +91,10 @@ const buildSeries = (history: QuantitySnapshot[], days: TimeframeDays): SeriesPo
 
 // Build step-line series representing the total quantity across ALL items.
 // Collapses all events within the same calendar day into one point (end-of-day total).
-const buildAggregateSeries = (history: ItemQuantitySnapshot[], days: TimeframeDays): SeriesPoint[] => {
+const buildAggregateSeries = (
+  history: ItemQuantitySnapshot[],
+  days: TimeframeDays,
+): SeriesPoint[] => {
   const now = Date.now();
   const cutoff = now - days * 24 * 60 * 60 * 1000;
 
@@ -183,7 +189,11 @@ export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) 
           style={
             timeframe === days
               ? { backgroundColor: 'var(--qu-dark)', borderColor: 'var(--qu-dark)', color: '#fff' }
-              : { borderColor: 'var(--qu-dark)', color: 'var(--qu-dark)', backgroundColor: 'transparent' }
+              : {
+                  borderColor: 'var(--qu-dark)',
+                  color: 'var(--qu-dark)',
+                  backgroundColor: 'transparent',
+                }
           }
         >
           {label}
@@ -214,7 +224,12 @@ export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) 
         >
           <Alert
             variant="danger"
-            style={{ borderColor: 'var(--qu-dark)', color: 'var(--qu-dark)', maxWidth: 400, textAlign: 'center' }}
+            style={{
+              borderColor: 'var(--qu-dark)',
+              color: 'var(--qu-dark)',
+              maxWidth: 400,
+              textAlign: 'center',
+            }}
           >
             <Alert.Heading>Chart Unavailable</Alert.Heading>
             <p className="mb-0">{error}</p>
@@ -240,7 +255,12 @@ export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) 
           >
             <Alert
               variant="info"
-              style={{ borderColor: 'var(--qu-light)', color: 'var(--qu-dark)', maxWidth: 400, textAlign: 'center' }}
+              style={{
+                borderColor: 'var(--qu-light)',
+                color: 'var(--qu-dark)',
+                maxWidth: 400,
+                textAlign: 'center',
+              }}
             >
               <Alert.Heading>No Data</Alert.Heading>
               <p className="mb-0">No history available for this period.</p>

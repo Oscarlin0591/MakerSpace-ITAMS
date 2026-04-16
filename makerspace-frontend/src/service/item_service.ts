@@ -61,7 +61,6 @@ export async function deleteItem(id: number) {
 export async function getItemHistory(itemId: number): Promise<QuantitySnapshot[]> {
   try {
     const response = await axios.get(`${API_BASE_URL}/items/${itemId}/history`);
-    console.log(`[getItemHistory] item ${itemId}:`, response.data);
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
     console.error('Error fetching item history:', error);
