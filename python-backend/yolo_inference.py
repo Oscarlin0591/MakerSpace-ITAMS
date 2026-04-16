@@ -39,7 +39,7 @@ def run_inference(image_paths):
         try:
                 model = YOLO(model_path, task='detect')
                 preprocessed = [preprocess_image(p) for p in abs_image_paths]
-                results = model(preprocessed)
+                results = model(preprocessed, verbose=False)
 
                 for res in results:
                         counts: dict[str, int] = {}
