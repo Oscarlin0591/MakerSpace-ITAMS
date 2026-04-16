@@ -4,7 +4,7 @@
  * by user to add a new item to the database
  */
 
-import { Modal, Button, Form, InputGroup, Row, Col } from 'react-bootstrap';
+import { Modal, Button, Form, InputGroup, Row, Col, Collapse } from 'react-bootstrap';
 import { useState, useEffect, type ChangeEvent } from 'react';
 import type { NewItem, Category, NewCategory } from '../types';
 import { postItem } from '../service/item_service';
@@ -30,8 +30,13 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
     units: '',
     quantity: 0,
     lowThreshold: 0,
-    color: '',
+    yoloLabels: null,
+    cameraId: null,
   });
+
+  // Raw comma-separated string for yoloLabels input
+  const [yoloLabelsInput, setYoloLabelsInput] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // new category state
   const [newCategory, setCatetory] = useState<NewCategory>({
@@ -87,8 +92,11 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
       units: '',
       quantity: 0,
       lowThreshold: 0,
-      color: '',
+      yoloLabels: null,
+      cameraId: null,
     });
+    setYoloLabelsInput('');
+    setShowAdvanced(false);
 
     setCatetory({
       categoryName: '',
@@ -117,18 +125,16 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
   // Data validation
   const isNameInvalid = !newItem.itemName;
   const numQuantity = newItem.quantity;
-  // parseInt(quantity, 10);
-  const isQuantityInvalid =
-    // quantity.trim() === '' ||
-    isNaN(numQuantity) || numQuantity < 0 || numQuantity > 9999;
+  const isQuantityInvalid = isNaN(numQuantity) || numQuantity < 0 || numQuantity > 9999;
   const numThreshold = newItem.lowThreshold;
-  // parseInt(lowThreshold, 10);
-  const isThresholdInvalid =
-    // lowThreshold.trim() === '' ||
-    isNaN(numThreshold) || numThreshold < 0 || numThreshold > 9999;
+  const isThresholdInvalid = isNaN(numThreshold) || numThreshold < 0 || numThreshold > 9999;
   const isExistingCategoryInvalid = !isAddingNew && !newItem.categoryName;
-  const isNewCategoryInvalid = isAddingNew && (!newCategory.categoryName);
-  const areNewUnitsInvalid = isAddingNew && (!newCategory.units);
+  const isNewCategoryInvalid = isAddingNew && !newCategory.categoryName;
+  const areNewUnitsInvalid = isAddingNew && !newCategory.units;
+  // cameraId and yoloLabels must both be set or both be empty
+  const hasCameraId = newItem.cameraId !== null && newItem.cameraId !== undefined;
+  const hasYoloLabels = yoloLabelsInput.trim() !== '';
+  const isCameraLabelsMismatch = hasCameraId !== hasYoloLabels;
 
   // Handle saving
   const handleSave = async () => {
@@ -140,17 +146,26 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
       isQuantityInvalid ||
       isThresholdInvalid ||
       isExistingCategoryInvalid ||
-      isNewCategoryInvalid && !newCategory.categoryName ||
-      areNewUnitsInvalid && !newCategory.units
+      (isNewCategoryInvalid && !newCategory.categoryName) ||
+      (areNewUnitsInvalid && !newCategory.units) ||
+      isCameraLabelsMismatch
     ) {
       return;
     }
+
+    const parsedLabels = hasYoloLabels
+      ? yoloLabelsInput
+          .split(',')
+          .map((l) => l.trim())
+          .filter(Boolean)
+      : null;
 
     const itemToSave: NewItem = {
       ...newItem,
       categoryName: isAddingNew ? newCategory.categoryName : newItem.categoryName,
       units: isAddingNew ? newCategory.units : newItem.units,
       categoryID: isAddingNew ? null : categorySelection ? parseInt(categorySelection, 10) : null,
+      yoloLabels: parsedLabels,
     };
 
     const catToSave: NewCategory = {
@@ -288,16 +303,57 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
             </Form.Group>
           </Row>
 
-          {/* Optional Color */}
-          <Form.Group controlId="formColor" className="mb-3">
-            <Form.Label>Color (Optional)</Form.Label>
-            <Form.Control
-              type="text"
-              name="color"
-              value={newItem.color || ''}
-              onChange={handleChange}
-            />
-          </Form.Group>
+          {/* Advanced Section for camera inference */}
+          <div className="mb-3">
+            <Button
+              variant="link"
+              className="p-0 text-decoration-none text-secondary"
+              onClick={() => setShowAdvanced((v) => !v)}
+              aria-expanded={showAdvanced}
+            >
+              {showAdvanced ? '▾' : '▸'} Advanced
+            </Button>
+            <Collapse in={showAdvanced}>
+              <div>
+                <Row className="mt-3">
+                  <Form.Group as={Col} controlId="formCameraId">
+                    <Form.Label>Camera</Form.Label>
+                    <Form.Select
+                      value={newItem.cameraId ?? ''}
+                      onChange={(e) =>
+                        setItem((prev) => ({
+                          ...prev,
+                          cameraId: e.target.value === '' ? null : parseInt(e.target.value, 10),
+                        }))
+                      }
+                      isInvalid={validated && isCameraLabelsMismatch && !hasCameraId}
+                    >
+                      <option value="">None</option>
+                      <option value="0">Camera 0 (Creality)</option>
+                      <option value="1">Camera 1 (Bambu)</option>
+                    </Form.Select>
+                    <Form.Control.Feedback type="invalid">
+                      Required when YOLO labels are set.
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                  <Form.Group as={Col} controlId="formYoloLabels">
+                    <Form.Label>YOLO Labels</Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="e.g. filament-box, filament-spool"
+                      value={yoloLabelsInput}
+                      onChange={(e) => setYoloLabelsInput(e.target.value)}
+                      isInvalid={validated && isCameraLabelsMismatch && !hasYoloLabels}
+                    />
+                    <Form.Text className="text-muted">Comma-separated model label names.</Form.Text>
+                    <Form.Control.Feedback type="invalid">
+                      Required when a camera is selected.
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Row>
+              </div>
+            </Collapse>
+          </div>
         </Form>
       </Modal.Body>
       <Modal.Footer>

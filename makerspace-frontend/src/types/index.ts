@@ -26,7 +26,8 @@ export type InventoryItem = {
   description?: string;
   quantity: number;
   lowThreshold: number;
-  color?: string;
+  yoloLabels?: string[];
+  cameraId?: number;
 };
 
 export type NewItem = {
@@ -36,7 +37,8 @@ export type NewItem = {
   units?: string | null;
   quantity: number;
   lowThreshold: number;
-  color?: string | null;
+  yoloLabels?: string[] | null;
+  cameraId?: number | null;
 };
 
 export type User = {
