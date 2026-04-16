@@ -1,11 +1,14 @@
-import { Navbar, Nav } from 'react-bootstrap';
+import { Navbar, Nav, Badge } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { BoxArrowRight } from 'react-bootstrap-icons';
 import Logo from '../assets/Logo.svg';
 import { useUser } from '../contexts/user';
+import { useNotifications } from '../contexts/notifications';
 
 export default function TopNavbar() {
   const { isAdmin, isAuthenticated } = useUser();
+  const { notifications } = useNotifications();
+  const activeCount = notifications.filter((n) => !n.ignored).length;
 
   if (!isAuthenticated) return null;
 
@@ -34,8 +37,13 @@ export default function TopNavbar() {
           <Nav.Link as={Link} to="/manage-inventory" className="fw-bold nav-option">
             Manage Inventory
           </Nav.Link>
-          <Nav.Link as={Link} to="/notification" className="fw-bold nav-option">
-            Notifications
+          <Nav.Link as={Link} to="/notifications" className="fw-bold nav-option">
+            Notifications{' '}
+            {activeCount > 0 && (
+              <Badge bg="danger" pill style={{ fontSize: '0.65rem', verticalAlign: 'middle' }}>
+                {activeCount}
+              </Badge>
+            )}
           </Nav.Link>
           <hr className="d-lg-none my-2 border-2 w-25" style={{ color: 'var(--qu-gold)' }} />
           <Nav.Link as={Link} to="/logout" className="fw-bold ms-lg-auto logout-button">

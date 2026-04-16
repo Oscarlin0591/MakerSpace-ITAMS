@@ -9,6 +9,7 @@ import { useState, useEffect, type ChangeEvent, type ReactNode } from 'react';
 import type { InventoryItem, Category } from '../types';
 import { putItem } from '../service/item_service';
 import { useUser } from '../contexts/user';
+import { useNotifications } from '../contexts/notifications';
 
 type ModalProps = {
   show: boolean;
@@ -24,6 +25,7 @@ function EditItemModal({ show, onCancel, onSave, item, existingCategories }: Mod
   const [saving, setSaving] = useState(false);
 
   const { isAdmin } = useUser();
+  const { clearIgnoreForItem } = useNotifications();
 
   // Populate form with the selected item when modal opens
   useEffect(() => {
@@ -72,6 +74,9 @@ function EditItemModal({ show, onCancel, onSave, item, existingCategories }: Mod
     setSaving(true);
     try {
       await putItem(editedItem.itemID, editedItem);
+      if (editedItem.quantity >= editedItem.lowThreshold) {
+        clearIgnoreForItem(editedItem.itemID);
+      }
       onSave(editedItem);
     } catch (err) {
       console.error('Failed to update item:', err);

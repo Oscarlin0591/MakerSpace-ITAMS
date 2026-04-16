@@ -26,8 +26,8 @@ export type InventoryItem = {
   description?: string;
   quantity: number;
   lowThreshold: number;
-  color?: string;
-  date?: string;
+  yoloLabels?: string[];
+  cameraId?: number;
 };
 
 export type NewItem = {
@@ -37,7 +37,8 @@ export type NewItem = {
   units?: string | null;
   quantity: number;
   lowThreshold: number;
-  color?: string | null;
+  yoloLabels?: string[] | null;
+  cameraId?: number | null;
 };
 
 export type User = {
@@ -67,4 +68,14 @@ export type UserContextType = {
 export type AuthResponse = {
   token: string;
   isAdmin: boolean;
+};
+
+export type AppNotification = {
+  id: string;          // `low-stock-${itemID}` — one active notification per item
+  itemID: number;
+  itemName: string;
+  quantity: number;
+  lowThreshold: number;
+  createdAt: string;
+  ignored: boolean;    // suppresses toasts; cleared when item restocks then re-dips
 };

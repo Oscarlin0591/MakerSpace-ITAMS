@@ -1,4 +1,4 @@
-export class InventoryItem  {
+export class InventoryItem {
   itemID: number;
   itemName: string;
   categoryID?: number;
@@ -6,10 +6,19 @@ export class InventoryItem  {
   // units?: string;
   quantity: number;
   lowThreshold: number;
-  color?: string;
-  date?: string;
+  yoloLabels?: string[];
+  cameraId?: number;
 
-  constructor (itemID:number, itemName: string, categoryID: number, quantity: number, lowThreshold: number, color?: string, categoryName?: string, date?: string) {
+  constructor(
+    itemID: number,
+    itemName: string,
+    categoryID: number,
+    quantity: number,
+    lowThreshold: number,
+    yoloLabels?: string[],
+    cameraId?: number,
+    categoryName?: string,
+  ) {
     this.itemID = itemID;
     this.itemName = itemName;
     this.categoryID = categoryID;
@@ -17,7 +26,7 @@ export class InventoryItem  {
     // this.units = units;
     this.quantity = quantity;
     this.lowThreshold = lowThreshold;
-    this.color = color;
-    this.date = date;
+    this.yoloLabels = yoloLabels;
+    this.cameraId = cameraId;
   }
-};
+}

@@ -46,6 +46,7 @@ const formatTick = (ts: number, days: TimeframeDays): string => {
 };
 
 // Build step-line series from history snapshots for the chosen timeframe.
+// Collapses all snapshots within the same calendar day into one point (last value of that day).
 // The last snapshot before the window becomes the baseline at the window start,
 // and the final known value is extended to the present so the line reaches today.
 const buildSeries = (history: QuantitySnapshot[], days: TimeframeDays): SeriesPoint[] => {
@@ -60,15 +61,22 @@ const buildSeries = (history: QuantitySnapshot[], days: TimeframeDays): SeriesPo
 
   if (!baseline && inRange.length === 0) return [];
 
+  // Group by YYYY-MM-DD, keeping the last snapshot of each day
+  const dailyMap = new Map<string, { ts: number; quantity: number }>();
+  inRange.forEach((s) => {
+    const dayKey = s.recorded_at.slice(0, 10);
+    dailyMap.set(dayKey, { ts: new Date(s.recorded_at).getTime(), quantity: s.quantity });
+  });
+
   const points: SeriesPoint[] = [];
 
   if (baseline) {
     points.push({ ts: cutoff, value: baseline.quantity });
   }
 
-  inRange.forEach((s) => {
-    points.push({ ts: new Date(s.recorded_at).getTime(), value: s.quantity });
-  });
+  [...dailyMap.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([, { ts, quantity }]) => points.push({ ts, value: quantity }));
 
   // Extend the last known value to now so the step line reaches the present
   if (points.length > 0) {
@@ -79,7 +87,7 @@ const buildSeries = (history: QuantitySnapshot[], days: TimeframeDays): SeriesPo
 };
 
 // Build step-line series representing the total quantity across ALL items.
-// Each change event updates that item's running quantity, then sums the full inventory.
+// Collapses all events within the same calendar day into one point (end-of-day total).
 const buildAggregateSeries = (history: ItemQuantitySnapshot[], days: TimeframeDays): SeriesPoint[] => {
   const now = Date.now();
   const cutoff = now - days * 24 * 60 * 60 * 1000;
@@ -96,16 +104,26 @@ const buildAggregateSeries = (history: ItemQuantitySnapshot[], days: TimeframeDa
 
   const points: SeriesPoint[] = [];
   const baselineTotal = [...baseline.values()].reduce((sum, q) => sum + q, 0);
-
   points.push({ ts: cutoff, value: baselineTotal });
 
-  // Replay in-range events, updating each item's current quantity and re-summing
-  const running = new Map(baseline);
+  // Group events by YYYY-MM-DD
+  const eventsByDay = new Map<string, ItemQuantitySnapshot[]>();
   inRange.forEach((s) => {
-    running.set(s.item_id, s.quantity);
-    const total = [...running.values()].reduce((sum, q) => sum + q, 0);
-    points.push({ ts: new Date(s.recorded_at).getTime(), value: total });
+    const dayKey = s.recorded_at.slice(0, 10);
+    if (!eventsByDay.has(dayKey)) eventsByDay.set(dayKey, []);
+    eventsByDay.get(dayKey)!.push(s);
   });
+
+  // Replay each day in order, updating running totals, emit one point per day
+  const running = new Map(baseline);
+  [...eventsByDay.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([, events]) => {
+      events.forEach((s) => running.set(s.item_id, s.quantity));
+      const total = [...running.values()].reduce((sum, q) => sum + q, 0);
+      const lastTs = Math.max(...events.map((s) => new Date(s.recorded_at).getTime()));
+      points.push({ ts: lastTs, value: total });
+    });
 
   // Extend to present
   points.push({ ts: now, value: points[points.length - 1].value });

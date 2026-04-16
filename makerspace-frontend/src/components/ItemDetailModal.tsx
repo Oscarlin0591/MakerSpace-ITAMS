@@ -2,6 +2,7 @@ import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
 import type { InventoryItem } from '../types';
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { putItem } from '../service/item_service';
+import { useNotifications } from '../contexts/notifications';
 
 
 type ItemDetailModalProps = {
@@ -20,6 +21,7 @@ export function ItemDetailModal({
   const [editedItem, setEditedItem] = useState<InventoryItem | null>()
   const [validated, setValidated] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { clearIgnoreForItem } = useNotifications();
 
   useEffect(() => {
     if (show && item) {
@@ -46,6 +48,9 @@ export function ItemDetailModal({
     setSaving(true);
     try {
       await putItem(editedItem.itemID, editedItem);
+      if (editedItem.quantity >= editedItem.lowThreshold) {
+        clearIgnoreForItem(editedItem.itemID);
+      }
       onSave(editedItem);
     } catch (err) {
       console.error("Failed to update item: " + err);

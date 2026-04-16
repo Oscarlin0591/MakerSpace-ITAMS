@@ -10,7 +10,10 @@ import LogOut from './components/LogOut.tsx';
 import axios from 'axios';
 import AuthenticateRoute from './components/AuthenticateRoute.tsx';
 import { UserProvider } from './contexts/user';
+import { NotificationProvider } from './contexts/notifications';
 import { NotificationPage } from './pages/NotificationPage.tsx';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   const [cookies, setCookie, removeCookie] = useCookies(['token', 'isAdmin']);
@@ -45,6 +48,8 @@ function App() {
 
   return (
     <UserProvider>
+      <NotificationProvider>
+        <ToastContainer position="top-right" autoClose={5000} newestOnTop={false} theme="colored" />
       <BrowserRouter>
         <NavbarLimiter />
         <Routes>
@@ -67,6 +72,7 @@ function App() {
           <Route path="/logout" element={<LogOut logOut={removeToken} />} />
         </Routes>
       </BrowserRouter>
+      </NotificationProvider>
     </UserProvider>
   );
 }
