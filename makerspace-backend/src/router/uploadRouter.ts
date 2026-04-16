@@ -9,7 +9,6 @@ import multer from 'multer';
 import path from 'path';
 import dotenv from 'dotenv';
 import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
 dotenv.config();
 
 const imageRouter = express.Router();

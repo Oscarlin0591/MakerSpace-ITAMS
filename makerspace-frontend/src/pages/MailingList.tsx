@@ -64,24 +64,25 @@ function MailingList() {
   }
 
   function toggleAlert(email: NotificationRecipient): void {
-    email.alerts = !email.alerts
-    updateEmail(email)
-
+    email.alerts = !email.alerts;
+    updateEmail(email);
   }
 
   function toggleDaily(email: NotificationRecipient): void {
-    email.daily = !email.daily
-    updateEmail(email)
+    email.daily = !email.daily;
+    updateEmail(email);
   }
 
   function toggleWeekly(email: NotificationRecipient): void {
-    email.weekly = !email.weekly
-    updateEmail(email)
+    email.weekly = !email.weekly;
+    updateEmail(email);
   }
 
   function updateEmail(email: NotificationRecipient): void {
-    setEmails((prev) => prev.map(currEmail => currEmail.email == email.email ? email : currEmail));
-    putEmail(email)
+    setEmails((prev) =>
+      prev.map((currEmail) => (currEmail.email == email.email ? email : currEmail)),
+    );
+    putEmail(email);
   }
 
   return (
@@ -107,34 +108,36 @@ function MailingList() {
           {error && <Alert variant="danger">Error: {error}</Alert>}
           {!loading && !error && (
             <ListGroup>
-              {emails.sort((a, b) => {
-                return a.email > b.email ? 1 : -1;
-              }).map(
-                (email: NotificationRecipient): ReactNode => (
-                  <ListGroup.Item
-                    key={email.email}
-                    className="d-flex justify-content-between align-items-center"
-                  >
-                    {/*<div>*/}
+              {emails
+                .sort((a, b) => {
+                  return a.email > b.email ? 1 : -1;
+                })
+                .map(
+                  (email: NotificationRecipient): ReactNode => (
+                    <ListGroup.Item
+                      key={email.email}
+                      className="d-flex justify-content-between align-items-center"
+                    >
+                      {/*<div>*/}
                       <Envelope />
                       <div className="col-3">{email.email}</div>
-                      <div className="col-2" onClick={() => toggleAlert(email)}>
+                      <div className="col-2 clickable" onClick={() => toggleAlert(email)}>
                         <text>Low quantity alerts</text>
-                        {email.alerts ? (<Check/>) : (<X/>)}
+                        {email.alerts ? <Check /> : <X />}
                       </div>
-                      <div className="col-2" onClick={() => toggleDaily(email)}>
+                      <div className="col-2 clickable" onClick={() => toggleDaily(email)}>
                         <text>Daily updates</text>
-                        {email.daily ? (<Check/>) : (<X/>)}
+                        {email.daily ? <Check /> : <X />}
                       </div>
-                      <div className="col-2" onClick={() => toggleWeekly(email)}>
+                      <div className="col-2 clickable" onClick={() => toggleWeekly(email)}>
                         <text>Weekly updates</text>
-                        {email.weekly ? (<Check/>) : (<X/>)}
+                        {email.weekly ? <Check /> : <X />}
                       </div>
-                    {/*</div>*/}
-                    <Trash3 className="clickable" onClick={() => handleDeleteClick(email)} />
-                  </ListGroup.Item>
-                ),
-              )}
+                      {/*</div>*/}
+                      <Trash3 className="clickable" onClick={() => handleDeleteClick(email)} />
+                    </ListGroup.Item>
+                  ),
+                )}
             </ListGroup>
           )}
         </Card.Body>

@@ -7,8 +7,8 @@
  * https://reactdatepicker.com/#example-calendar-icon-using-external-lib
  */
 
-import { Modal, Button, Form, Row, Col, InputGroup } from 'react-bootstrap';
-import { useState, useEffect } from 'react';
+import { Button, Col, Form, InputGroup, Modal, Row } from 'react-bootstrap';
+import { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Calendar } from 'react-bootstrap-icons';
@@ -27,14 +27,14 @@ type ModalProps = {
 
 function ExportDataModal({ data, show, onClose }: ModalProps) {
   const [startDate, setStartDate] = useState<Date>(getInitialDate());
-  const [rangeUnit, setRangeUnit] = useState<string>('');
+  const [rangeUnit, setRangeUnit] = useState<string>('Days');
   const [rangeNumber, setRangeNumber] = useState<number>(1);
 
   // Clear modal on open
   useEffect(() => {
     if (show) {
       setStartDate(getInitialDate());
-      setRangeUnit('');
+      setRangeUnit('Days');
       setRangeNumber(1);
     }
   }, [show]);
@@ -53,37 +53,29 @@ function ExportDataModal({ data, show, onClose }: ModalProps) {
 
   // Function to calculate calendar selection start startDate based on range
   const getEndDate = () => {
-    const newStartDate = new Date(startDate);
-    // console.log(newStartDate.getDate());
+    const newEndDate = new Date(startDate);
     if (rangeUnit === 'Days') {
-      console.log(typeof newStartDate.getDate());
-      console.log(typeof rangeNumber);
-      console.log(newStartDate.getDate() + rangeNumber);
-      newStartDate.setDate(newStartDate.getDate() + rangeNumber);
+      newEndDate.setDate(newEndDate.getDate() + rangeNumber);
     } else if (rangeUnit === 'Weeks') {
-      newStartDate.setDate(newStartDate.getDate() + rangeNumber * 7);
+      newEndDate.setDate(newEndDate.getDate() + rangeNumber * 7);
     } else if (rangeUnit === 'Months') {
-      newStartDate.setMonth(newStartDate.getMonth() + rangeNumber);
+      newEndDate.setMonth(newEndDate.getMonth() + rangeNumber);
     } else if (rangeUnit === 'Years') {
-      newStartDate.setFullYear(newStartDate.getFullYear() + rangeNumber);
+      newEndDate.setFullYear(newEndDate.getFullYear() + rangeNumber);
     } else {
       return startDate;
     }
-    newStartDate.setDate(newStartDate.getDate() - 1);
-    // console.log(newStartDate.getDate());
+    newEndDate.setMilliseconds(newEndDate.getMilliseconds() - 1);
 
-    return newStartDate;
+    return newEndDate;
   };
 
   function filterData() {
     if (!data) return [];
-    const filtered = data.filter((transaction: BackendTransaction) => {
-      const date = new Date(transaction.timestamp);
+    return data.filter((transaction: BackendTransaction) => {
+      const date = new Date(transaction.recorded_at);
       return startDate <= date && date <= getEndDate();
     });
-    console.log(data);
-    console.log(filtered);
-    return filtered;
   }
 
   return (

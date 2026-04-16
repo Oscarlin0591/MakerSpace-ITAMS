@@ -1,11 +1,13 @@
 export class Transaction {
   transactionId: number;
-  transactionSystem: string;
-  timestamp: Date;
+  item_id: number;
+  recorded_at: string;
+  quantity: number;
 
-  constructor (transactionId: number, transactionSystem: string, timestamp: Date) {
+  constructor (transactionId: number, item_id: number, recorded_at: string, quantity: number) {
     this.transactionId = transactionId;
-    this.transactionSystem = transactionSystem;
-    this.timestamp = timestamp;
+    this.item_id = item_id;
+    this.recorded_at = recorded_at;
+    this.quantity = quantity;
   }
 };
