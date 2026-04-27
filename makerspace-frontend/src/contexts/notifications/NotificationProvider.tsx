@@ -3,6 +3,7 @@ import type { AppNotification, InventoryItem } from '../../types';
 import { NotificationContext } from './NotificationContext';
 
 const STORAGE_KEY = 'itams_notifications';
+const VIEWED_KEY = 'itams_notifications_viewed_at';
 
 function load(): AppNotification[] {
   try {
@@ -19,6 +20,15 @@ function save(notifications: AppNotification[]) {
 
 export const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
   const [notifications, setNotifications] = useState<AppNotification[]>(load);
+  const [lastViewedAt, setLastViewedAt] = useState<number>(() => {
+    const raw = localStorage.getItem(VIEWED_KEY);
+    return raw ? parseInt(raw, 10) : 0;
+  });
+
+  const unreadCount = notifications.filter(
+    (n) => !n.ignored && new Date(n.createdAt).getTime() > lastViewedAt,
+  ).length;
+  const hasUnread = unreadCount > 0;
 
   const update = useCallback((next: AppNotification[]) => {
     save(next);
@@ -101,9 +111,15 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     [update],
   );
 
+  const markAllRead = useCallback(() => {
+    const now = Date.now();
+    localStorage.setItem(VIEWED_KEY, String(now));
+    setLastViewedAt(now);
+  }, []);
+
   return (
     <NotificationContext.Provider
-      value={{ notifications, syncNotifications, deleteNotification, ignoreNotification, clearIgnoreForItem }}
+      value={{ notifications, hasUnread, unreadCount, syncNotifications, deleteNotification, ignoreNotification, clearIgnoreForItem, markAllRead }}
     >
       {children}
     </NotificationContext.Provider>

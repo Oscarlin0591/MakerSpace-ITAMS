@@ -2,28 +2,11 @@
  * Dashboard.tsx
  * Home page used to display inventory data and analytics
  */
-import { useEffect } from 'react';
 import StockLevelsCard from '../features/StockLevelsCard';
 import SelectItemCard from '../features/SelectItemCard';
 import { Container, Row, Col } from 'react-bootstrap';
-import { toast } from 'react-toastify';
-import { getItems } from '../service/item_service';
-import { useNotifications } from '../contexts/notifications';
 
 export function Dashboard() {
-  const { syncNotifications } = useNotifications();
-
-  useEffect(() => {
-    getItems().then((items) => {
-      const toToast = syncNotifications(items);
-      toToast.forEach((item) => {
-        toast.warn(
-          `Low stock: "${item.itemName}" is at ${item.quantity} (threshold: ${item.lowThreshold})`,
-          { toastId: `low-stock-${item.itemID}` },
-        );
-      });
-    });
-  }, [syncNotifications]);
 
   return (
     <Container fluid className="my-4">

@@ -1,9 +1,14 @@
+import { useEffect } from 'react';
 import { Alert, Badge, Card, Container } from 'react-bootstrap';
 import { Trash3, BellSlash } from 'react-bootstrap-icons';
 import { useNotifications } from '../contexts/notifications';
 
 export function NotificationPage() {
-  const { notifications, deleteNotification, ignoreNotification } = useNotifications();
+  const { notifications, deleteNotification, ignoreNotification, markAllRead } = useNotifications();
+
+  useEffect(() => {
+    markAllRead();
+  }, [markAllRead]);
 
   const active = notifications.filter((n) => !n.ignored);
   const ignored = notifications.filter((n) => n.ignored);

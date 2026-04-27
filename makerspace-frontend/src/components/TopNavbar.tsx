@@ -7,8 +7,7 @@ import { useNotifications } from '../contexts/notifications';
 
 export default function TopNavbar() {
   const { isAdmin, isAuthenticated } = useUser();
-  const { notifications } = useNotifications();
-  const activeCount = notifications.filter((n) => !n.ignored).length;
+  const { hasUnread, unreadCount } = useNotifications();
 
   if (!isAuthenticated) return null;
 
@@ -39,9 +38,9 @@ export default function TopNavbar() {
           </Nav.Link>
           <Nav.Link as={Link} to="/notifications" className="fw-bold nav-option">
             Notifications{' '}
-            {activeCount > 0 && (
+            {hasUnread && (
               <Badge bg="danger" pill style={{ fontSize: '0.65rem', verticalAlign: 'middle' }}>
-                {activeCount}
+                {unreadCount}
               </Badge>
             )}
           </Nav.Link>

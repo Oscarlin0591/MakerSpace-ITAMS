@@ -24,6 +24,8 @@ import nodemailer from 'nodemailer';
 import { InventoryItem } from './models/inventory_item.ts';
 import nodeCron from 'node-cron';
 import { EmailRecipient } from './models/email_recipient.ts';
+import { createClient } from '@supabase/supabase-js';
+import config from './config.json';
 dotenv.config();
 
 // Extend express request to include nullable user type
@@ -48,6 +50,26 @@ if (!fs.existsSync(configPath)) {
 const app = express();
 const apiRouter: Router = express.Router();
 apiRouter.use(imageRouter);
+
+// One entry per open browser tab — added on GET /events, removed on client disconnect.
+// Using a Set gives O(1) add/delete with no index bookkeeping.
+const sseClients = new Set<Response>();
+
+/**
+ * Writes a single SSE frame to every connected client.
+ * Wire format: "event: <name>\ndata: <json>\n\n"
+ * If a write throws (socket already closed), the dead entry is removed silently.
+ */
+function broadcastSSE(event: string, data: unknown): void {
+  const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+  sseClients.forEach((res) => {
+    try {
+      res.write(message);
+    } catch {
+      sseClients.delete(res);
+    }
+  });
+}
 
 // Check for .env file
 if (!process.env.PORT || !process.env.JWT_SECRET) {
@@ -156,6 +178,58 @@ const initializeServer = async () => {
       }
     });
   });
+
+  // =============================================================================================================================
+  // Supabase Realtime → SSE fan-out
+  //
+  // A single persistent WebSocket connection to Supabase listens on both tables.
+  // Whenever Supabase fires a change event, broadcastSSE() forwards it to every
+  // browser tab that is currently holding an open GET /api/events connection.
+  //
+  // Requires Realtime to be enabled on both tables in the Supabase dashboard
+  // (Database → Replication → toggle INSERT/UPDATE/DELETE per table).
+
+  const realtimeClient = createClient(
+    config.VITE_SUPABASE_URL,
+    config.VITE_SUPABASE_PUBLISHABLE_KEY,
+  );
+
+  realtimeClient
+    .channel('db-changes')
+    // New transaction row = a quantity was recorded; the chart needs a new point.
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'transaction' },
+      (payload) => {
+        broadcastSSE('transaction_insert', payload.new);
+      },
+    )
+    // Any inventory_item mutation = item list may need refreshing on the frontend.
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'inventory_item' },
+      (payload) => {
+        broadcastSSE('inventory_change', {
+          eventType: payload.eventType,
+          record: payload.new,
+        });
+      },
+    )
+    .subscribe((status) => {
+      console.log('Supabase Realtime status:', status);
+    });
+
+  // Proxies and browsers silently drop idle HTTP connections after ~30–60 s.
+  // Sending an SSE comment frame every 25 s keeps every open stream alive.
+  setInterval(() => {
+    sseClients.forEach((res) => {
+      try {
+        res.write(': heartbeat\n\n');
+      } catch {
+        sseClients.delete(res);
+      }
+    });
+  }, 25_000);
 
   // =============================================================================================================================
   // item routes
@@ -393,6 +467,47 @@ const initializeServer = async () => {
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
+  });
+
+  // =============================================================================================================================
+  // SSE endpoint
+  //
+  // The browser's native EventSource API cannot send custom headers, so the JWT
+  // must be passed as a query parameter (?token=...) rather than Authorization.
+  // The trade-off is that the token appears in server logs; this is acceptable
+  // because the stream only delivers inventory data, not credentials or PII.
+
+  apiRouter.get('/events', (req: Request, res: Response) => {
+    // Validate the token from the query string
+    const token = req.query.token as string | undefined;
+    if (!token) {
+      return res.status(401).json({ message: 'Access denied. No token provided.' });
+    }
+    try {
+      jwt.verify(token, jwtSecret);
+    } catch {
+      return res.status(400).json({ message: 'Invalid token.' });
+    }
+
+    // SSE requires these three headers; text/event-stream tells the browser
+    // to keep reading rather than treating it as a one-shot HTTP response.
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    // flushHeaders() sends the headers immediately so the browser opens the
+    // stream before the first data frame arrives.
+    res.flushHeaders();
+
+    // Register this client so broadcastSSE() can reach it
+    sseClients.add(res);
+
+    // Initial comment confirms the stream is open on the client side
+    res.write(': connected\n\n');
+
+    // Remove from the broadcast set when the client disconnects
+    req.on('close', () => {
+      sseClients.delete(res);
+    });
   });
 
   // Mount API router at /api path

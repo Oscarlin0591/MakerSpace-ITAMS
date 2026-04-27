@@ -16,6 +16,7 @@ import {
 } from 'recharts';
 import type { FC } from 'react';
 import { useState, useEffect } from 'react';
+import { useCookies } from 'react-cookie';
 import { Spinner, Alert, Card, ButtonGroup, Button } from 'react-bootstrap';
 import {
   getItemHistory,
@@ -24,9 +25,10 @@ import {
   type ItemQuantitySnapshot,
 } from '../service/item_service';
 import type { InventoryItem } from '../types/index';
+import { API_BASE_URL } from '../types/index';
 import { getCategory } from '../service/category';
 
-type SeriesPoint = { ts: number; value: number };
+type SeriesPoint = { ts: number; value: number; actualTs?: number };
 
 type ActivityChartProps = {
   series?: SeriesPoint[];
@@ -52,7 +54,7 @@ const formatTick = (ts: number, days: TimeframeDays): string => {
 
 // Iterates every UTC calendar day from startDayKey (YYYY-MM-DD) through today inclusive.
 function eachDay(startDayKey: string, callback: (dayKey: string, ts: number) => void) {
-  const iter = new Date(startDayKey + 'T00:00:00Z');
+  const iter = new Date(startDayKey + 'T12:00:00Z');
   const todayKey = new Date().toISOString().slice(0, 10);
   while (true) {
     const dayKey = iter.toISOString().slice(0, 10);
@@ -74,10 +76,13 @@ const buildSeries = (history: QuantitySnapshot[], days: TimeframeDays): SeriesPo
 
   if (!baseline && inRange.length === 0) return [];
 
-  // Last value per day within the window
+  // Last value and actual timestamp per day within the window
   const dailyMap = new Map<string, number>();
+  const dailyTsMap = new Map<string, number>();
   inRange.forEach((s) => {
-    dailyMap.set(s.recorded_at.slice(0, 10), s.quantity);
+    const dayKey = s.recorded_at.slice(0, 10);
+    dailyMap.set(dayKey, s.quantity);
+    dailyTsMap.set(dayKey, new Date(s.recorded_at).getTime());
   });
 
   // Start from the cutoff day if we have a baseline; otherwise from the first data day
@@ -90,7 +95,7 @@ const buildSeries = (history: QuantitySnapshot[], days: TimeframeDays): SeriesPo
 
   eachDay(startDay, (dayKey, ts) => {
     if (dailyMap.has(dayKey)) carry = dailyMap.get(dayKey)!;
-    points.push({ ts, value: carry });
+    points.push({ ts, value: carry, actualTs: dailyTsMap.get(dayKey) });
   });
 
   return points;
@@ -131,26 +136,34 @@ const buildAggregateSeries = (
   const points: SeriesPoint[] = [];
 
   eachDay(startDay, (dayKey, ts) => {
-    eventsByDay.get(dayKey)?.forEach((s) => running.set(s.item_id, s.quantity));
+    const events = eventsByDay.get(dayKey);
+    events?.forEach((s) => running.set(s.item_id, s.quantity));
     const total = [...running.values()].reduce((sum, q) => sum + q, 0);
-    points.push({ ts, value: total });
+    const actualTs = events
+      ? Math.max(...events.map((s) => new Date(s.recorded_at).getTime()))
+      : undefined;
+    points.push({ ts, value: total, actualTs });
   });
 
   return points;
 };
 
 export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) => {
+  // Token is needed to authenticate the SSE connection (EventSource can't send headers)
+  const [cookies] = useCookies(['token']);
+
   const [chartData, setChartData] = useState<SeriesPoint[]>(series ?? []);
   const [loading, setLoading] = useState(!series);
   const [error, setError] = useState<string | null>(null);
   const [units, setUnits] = useState<string>('');
-  const [timeframe, setTimeframe] = useState<TimeframeDays>(30);
+  const [timeframe, setTimeframe] = useState<TimeframeDays>(7);
 
   // Full unfiltered history cached here — re-fetched only when selectedItem changes,
   // not on every timeframe button click.
   const [rawHistory, setRawHistory] = useState<QuantitySnapshot[] | ItemQuantitySnapshot[] | null>(null);
 
-  // Fetch full history whenever the selected item changes
+  // Fetch the full history once on mount / when the selected item changes.
+  // Live updates after that come through the SSE stream below — no polling needed.
   useEffect(() => {
     if (series && series.length > 0) {
       setChartData(series);
@@ -184,7 +197,55 @@ export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) 
     };
 
     fetchHistory();
-  }, [series, selectedItem]);
+
+    // Open a persistent SSE stream so new transaction inserts arrive instantly.
+    // The browser's native EventSource cannot send custom headers, so the JWT
+    // is appended as a query parameter instead of an Authorization header.
+    const token = cookies.token as string | undefined;
+    if (!token) return;
+
+    const eventSource = new EventSource(
+      `${API_BASE_URL}/events?token=${encodeURIComponent(token)}`,
+    );
+
+    // The server emits a 'transaction_insert' event whenever a new row lands
+    // in the transaction table. Appending it to rawHistory triggers the rebuild
+    // effect below, which redraws the chart without a full re-fetch.
+    eventSource.addEventListener('transaction_insert', (e: MessageEvent) => {
+      const snapshot = JSON.parse(e.data) as {
+        item_id: number;
+        quantity: number;
+        recorded_at: string;
+      };
+
+      setRawHistory((prev) => {
+        if (!prev) return prev;
+
+        if (selectedItem) {
+          // Single-item view: ignore events belonging to other items
+          if (snapshot.item_id !== selectedItem.itemID) return prev;
+          const point: QuantitySnapshot = {
+            quantity: snapshot.quantity,
+            recorded_at: snapshot.recorded_at,
+          };
+          return [...(prev as QuantitySnapshot[]), point];
+        }
+
+        // Aggregate view: every item's inserts contribute to the running total
+        return [...(prev as ItemQuantitySnapshot[]), snapshot];
+      });
+    });
+
+    // EventSource reconnects automatically on network errors; log for devtools visibility
+    eventSource.onerror = (err) => {
+      console.error('SSE stream error:', err);
+    };
+
+    // Close the stream when the component unmounts or the selected item changes
+    return () => {
+      eventSource.close();
+    };
+  }, [series, selectedItem, cookies.token]);
 
   // Rebuild chart points whenever history or timeframe changes — no extra fetch needed
   useEffect(() => {
@@ -336,15 +397,23 @@ export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) 
                 borderRadius: 6,
                 color: 'var(--qu-dark)',
               }}
-              labelFormatter={(ts: number) =>
-                new Date(ts).toLocaleDateString('en-US', {
+              labelFormatter={(_ts: number, payload: Array<{ payload: SeriesPoint }>) => {
+                const point = payload?.[0]?.payload;
+                if (point?.actualTs) {
+                  return new Date(point.actualTs).toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  });
+                }
+                return new Date(point?.ts ?? _ts).toLocaleDateString('en-US', {
                   month: 'long',
                   day: 'numeric',
                   year: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                })
-              }
+                });
+              }}
               formatter={(value: number) => [
                 `${value}${selectedItem && units ? ' ' + units : ''}`,
                 selectedItem ? 'Quantity' : 'Total Quantity',
