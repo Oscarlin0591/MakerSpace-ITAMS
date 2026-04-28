@@ -1,0 +1,263 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg viewBox="0 0 1240 620" width="1240" height="620" font-family="'Segoe UI', Arial, Helvetica, sans-serif" version="1.1" id="svg-arch" sodipodi:docname="architecture_no-bg.svg" inkscape:version="1.4.2 (f4327f4, 2025-05-13)" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview id="namedview87" pagecolor="#ffffff" bordercolor="#000000" borderopacity="0.25" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="0" inkscape:deskcolor="#d1d1d1" inkscape:zoom="0.98414634" inkscape:cx="600.52045" inkscape:cy="329.72739" inkscape:window-width="2560" inkscape:window-height="1009" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="svg-arch" showgrid="false" />
+  <defs id="defs4">
+    <marker id="ah-gold" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0,0 10,3.5 0,7 " fill="#ffb81c" id="polygon1" />
+    </marker>
+    <marker id="ah-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0,0 10,3.5 0,7 " fill="#4db3ff" id="polygon2" />
+    </marker>
+    <marker id="ah-dark" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0,0 10,3.5 0,7 " fill="#000b65" id="polygon3" />
+    </marker>
+    <marker id="ah-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0,0 10,3.5 0,7 " fill="#28a745" id="polygon4" />
+    </marker>
+    <marker id="ah-green-0" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0,7 0,0 10,3.5 " fill="#28a745" id="polygon4-9" />
+    </marker>
+    <marker id="ah-green-4" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0,7 0,0 10,3.5 " fill="#28a745" id="polygon4-8" />
+    </marker>
+  </defs>
+  <!--
+    COLUMN LAYOUT  (all y values measured from top of viewBox)
+    ┌──────────────┐  ┌──────────────────────────────────────────────┐  ╔══╗  ┌────────────────────────────┐
+    │  Pi Client   │  │          Ubuntu Compute Server               │  ║  ║  │       User Browser         │
+    │  x=15 w=220  │  │  x=255  w=555  (ends x=810)                 │  ║55║  │  x=865  w=320              │
+    └──────────────┘  └──────────────────────────────────────────────┘  ║px║  └────────────────────────────┘
+                      ┌──────────────────────────────────────────────┐  ║  ║
+                      │  Database  x=255  w=555  y=535               │  ╚══╝
+                      └──────────────────────────────────────────────┘
+    55-px routing strip at x=810–865 carries:
+      • REST API arrows  (nginx ↔ Browser)   at y=83 / y=97
+      • B→DB / DB→B arrows                   at x=820 / x=826
+      • "DB Client" label                    at y=519 (between Server y=500 and DB y=535)
+  -->
+  <!-- ═══════════════════════════════════════════════════════
+       PI CLIENT   x=15  y=20  w=220  h=300
+       ═══════════════════════════════════════════════════════ -->
+  <rect x="14.93754" y="19.93754" width="220.12492" height="263.54498" rx="10.005678" fill="#deeeff" stroke="#000b65" stroke-width="1.87508" id="rect4" />
+  <text x="125" y="46" text-anchor="middle" font-size="13px" font-weight="700" fill="#000b65" id="text4">Pi Client</text>
+  <line x1="30" y1="53" x2="220" y2="53" stroke="#000b65" stroke-width="1" opacity="0.25" id="line4" />
+  <!-- Camera -->
+  <rect x="35" y="60" width="180" height="58" rx="6" fill="#4db3ff" stroke="#000b65" stroke-width="1.5" id="rect5" />
+  <text x="125" y="84" text-anchor="middle" font-size="13px" font-weight="600" fill="#000b65" id="text5">Camera</text>
+  <text x="125" y="101" text-anchor="middle" font-size="10.5px" fill="#002244" id="text6">Picamera2 · CSI Module</text>
+  <line x1="125" y1="118" x2="125" y2="138" stroke="#000b65" stroke-width="1.5" marker-end="url(#ah-dark)" id="line6" />
+  <!-- Raspberry Pi -->
+  <rect x="35" y="138" width="180" height="58" rx="6" fill="#4db3ff" stroke="#000b65" stroke-width="1.5" id="rect6" />
+  <text x="125" y="162" text-anchor="middle" font-size="13px" font-weight="600" fill="#000b65" id="text7">Raspberry Pi</text>
+  <text x="125" y="179" text-anchor="middle" font-size="10.5px" fill="#002244" id="text8">Python · Linux OS</text>
+  <line x1="125" y1="196" x2="125" y2="216" stroke="#000b65" stroke-width="1.5" marker-end="url(#ah-dark)" id="line8" />
+  <!-- camera_upload.py -->
+  <rect x="35" y="216" width="180" height="58" rx="6" fill="#4db3ff" stroke="#000b65" stroke-width="1.5" id="rect8" />
+  <text x="125" y="240" text-anchor="middle" font-size="13px" font-weight="600" fill="#000b65" id="text9">camera_upload.py</text>
+  <text x="125" y="257" text-anchor="middle" font-size="10.5px" fill="#002244" id="text10">Capture &amp; HTTP Upload</text>
+  <!-- ═══════════════════════════════════════════════════════
+       UBUNTU SERVER   x=255  y=20  w=555  h=480  (ends x=810, y=500)
+       Narrowed 35 px vs previous to open the 55-px routing strip.
+       ═══════════════════════════════════════════════════════ -->
+  <rect x="289.02188" y="20.0219" width="554.95624" height="501.29449" rx="9.9992104" fill="#fffef0" stroke="#000b65" stroke-width="2.0438" id="rect10" />
+  <text x="567" y="46" text-anchor="middle" font-size="13px" font-weight="700" fill="#000b65" id="text11">Ubuntu Compute Server</text>
+  <line x1="304" y1="53" x2="834" y2="53" stroke="#000b65" stroke-width="1" opacity="0.25" id="line11" />
+  <!-- nginx   x=275  w=515  (ends x=790)  centre x=533 -->
+  <rect x="309" y="60" width="515" height="58" rx="6" fill="#ffb81c" stroke="#cc7700" stroke-width="1.5" id="rect11" />
+  <text x="567" y="84" text-anchor="middle" font-size="14px" font-weight="700" fill="#000b65" id="text12">nginx</text>
+  <text x="567" y="101" text-anchor="middle" font-size="11px" fill="#3a2000" id="text13">Reverse Proxy · Static File Serving</text>
+  <!-- nginx → Backend sub-group -->
+  <line x1="565" y1="118" x2="565" y2="138" stroke="#000b65" stroke-width="1.5" marker-end="url(#ah-dark)" id="line13" />
+  <!-- Node.js Backend sub-group   x=265  y=138  w=535  h=270  (ends x=800, y=408) -->
+  <rect x="299.00699" y="138.00699" width="534.98602" height="275.06656" rx="6.9998169" fill="#e8f4ff" stroke="#4db3ff" stroke-width="1.51399" id="rect13" />
+  <text x="567" y="158" text-anchor="middle" font-size="13px" font-weight="700" fill="#000b65" id="text14">Node.js / TypeScript Backend</text>
+  <line x1="312" y1="165" x2="824" y2="165" stroke="#4db3ff" stroke-width="0.8" opacity="0.5" id="line14" />
+  <!-- ── Routers   x=278  w=245  (ends x=523)  centre x=400 ── -->
+  <rect x="310.00671" y="170.60747" width="244.99359" height="234.31595" rx="4.9998693" fill="#ffffff" stroke="#4db3ff" stroke-width="1.00933" id="rect14" />
+  <text x="432" y="185" text-anchor="middle" font-size="12px" font-weight="700" fill="#000b65" id="text15">Routers</text>
+  <line x1="320" y1="192" x2="545" y2="192" stroke="#4db3ff" stroke-width="0.8" opacity="0.5" id="line15" />
+  <!-- router cards   inner x=288  w=225  centre x=400 -->
+  <rect x="320" y="197" width="225" height="22" rx="4" fill="#deeeff" stroke="#4db3ff" stroke-width="1" id="rect15" />
+  <text x="432" y="212" text-anchor="middle" font-size="10px" font-weight="600" fill="#000b65" id="text16">itemRouter.ts</text>
+  <rect x="320" y="225" width="225" height="22" rx="4" fill="#deeeff" stroke="#4db3ff" stroke-width="1" id="rect16" />
+  <text x="432" y="240" text-anchor="middle" font-size="10px" font-weight="600" fill="#000b65" id="text17">userRouter.ts</text>
+  <rect x="320" y="253" width="225" height="22" rx="4" fill="#deeeff" stroke="#4db3ff" stroke-width="1" id="rect17" />
+  <text x="432" y="268" text-anchor="middle" font-size="10px" font-weight="600" fill="#000b65" id="text18">emailRouter.ts</text>
+  <rect x="320" y="281" width="225" height="22" rx="4" fill="#deeeff" stroke="#4db3ff" stroke-width="1" id="rect18" />
+  <text x="432" y="296" text-anchor="middle" font-size="10px" font-weight="600" fill="#000b65" id="text19">categoryRouter.ts</text>
+  <rect x="320" y="309" width="225" height="22" rx="4" fill="#deeeff" stroke="#4db3ff" stroke-width="1" id="rect19" />
+  <text x="432" y="324" text-anchor="middle" font-size="10px" font-weight="600" fill="#000b65" id="text20">transactionRouter.ts</text>
+  <rect x="320" y="337" width="225" height="22" rx="4" fill="#deeeff" stroke="#4db3ff" stroke-width="1" id="rect20" />
+  <text x="432" y="352" text-anchor="middle" font-size="10px" font-weight="600" fill="#000b65" id="text21">uploadRouter.ts</text>
+  <!-- ── Models   x=533  w=259  (ends x=792)  centre x=662 ── -->
+  <rect x="563.00006" y="170.60747" width="258.99323" height="234.31595" rx="4.9998693" fill="#ffffff" stroke="#4db3ff" stroke-width="1.00933" id="rect21" />
+  <text x="692" y="185" text-anchor="middle" font-size="12px" font-weight="700" fill="#000b65" id="text22">Models</text>
+  <line x1="573" y1="192" x2="812" y2="192" stroke="#4db3ff" stroke-width="0.8" opacity="0.5" id="line22" />
+  <!-- model cards   inner x=543  w=239  centre x=662 -->
+  <rect x="573" y="197" width="239" height="22" rx="4" fill="#deeeff" stroke="#4db3ff" stroke-width="1" id="rect22" />
+  <text x="692" y="212" text-anchor="middle" font-size="10px" font-weight="600" fill="#000b65" id="text23">inventory_item.ts</text>
+  <rect x="573" y="225" width="239" height="22" rx="4" fill="#deeeff" stroke="#4db3ff" stroke-width="1" id="rect23" />
+  <text x="692" y="240" text-anchor="middle" font-size="10px" font-weight="600" fill="#000b65" id="text24">user.ts</text>
+  <rect x="573" y="253" width="239" height="22" rx="4" fill="#deeeff" stroke="#4db3ff" stroke-width="1" id="rect24" />
+  <text x="692" y="268" text-anchor="middle" font-size="10px" font-weight="600" fill="#000b65" id="text25">item_category.ts</text>
+  <rect x="573" y="281" width="239" height="22" rx="4" fill="#deeeff" stroke="#4db3ff" stroke-width="1" id="rect25" />
+  <text x="692" y="296" text-anchor="middle" font-size="10px" font-weight="600" fill="#000b65" id="text26">transaction.ts</text>
+  <rect x="573" y="309" width="239" height="22" rx="4" fill="#deeeff" stroke="#4db3ff" stroke-width="1" id="rect26" />
+  <text x="692" y="324" text-anchor="middle" font-size="10px" font-weight="600" fill="#000b65" id="text27">email_recipient.ts</text>
+  <!-- Backend → YOLO spawn -->
+  <text x="565" y="430" font-size="9.5px" fill="#28a745" id="text28">spawn</text>
+  <!-- YOLO   x=275  w=515  (ends x=790) -->
+  <rect x="309" y="451" width="515" height="60" rx="6" fill="#d4edda" stroke="#28a745" stroke-width="1.5" id="rect28" />
+  <text x="567" y="475" text-anchor="middle" font-size="13px" font-weight="700" fill="#155724" id="text29">Python · Ultralytics YOLO (yolo_inference.py)</text>
+  <text x="567" y="494" text-anchor="middle" font-size="11px" fill="#155724" id="text30">Object Detection · Inventory Recognition · Spawned subprocess</text>
+  <!-- ═══════════════════════════════════════════════════════
+       USER BROWSER   x=865  y=20  w=320  h=500
+       ═══════════════════════════════════════════════════════ -->
+  <rect x="895" y="20" width="320" height="500" rx="10" fill="#deeeff" stroke="#000b65" stroke-width="2" id="rect30" />
+  <text x="1055" y="46" text-anchor="middle" font-size="13px" font-weight="700" fill="#000b65" id="text31">User Browser</text>
+  <line x1="910" y1="53" x2="1200" y2="53" stroke="#000b65" stroke-width="1" opacity="0.25" id="line31" />
+  <!-- React header -->
+  <rect x="913" y="60" width="284" height="46" rx="6" fill="#4db3ff" stroke="#000b65" stroke-width="1.4" id="rect31" />
+  <text x="1055" y="78" text-anchor="middle" font-size="13px" font-weight="700" fill="#000b65" id="text32">React / TypeScript</text>
+  <text x="1055" y="94" text-anchor="middle" font-size="10px" fill="#002244" id="text33">Frontend · Vite 7</text>
+  <!-- Pages -->
+  <rect x="913" y="113" width="284" height="90" rx="4" fill="#f0f8ff" stroke="#aaccee" stroke-width="0.8" id="rect33" />
+  <text x="1055" y="125" text-anchor="middle" font-size="10px" font-weight="700" fill="#000b65" id="text34">Pages</text>
+  <line x1="921" y1="130" x2="1189" y2="130" stroke="#aaccee" stroke-width="0.6" id="line34" />
+  <text x="1055" y="141" text-anchor="middle" font-size="9px" fill="#002244" id="text35">Dashboard.tsx</text>
+  <text x="1055" y="153" text-anchor="middle" font-size="9px" fill="#002244" id="text36">Login.tsx</text>
+  <text x="1055" y="165" text-anchor="middle" font-size="9px" fill="#002244" id="text37">ManageInventory.tsx</text>
+  <text x="1055" y="177" text-anchor="middle" font-size="9px" fill="#002244" id="text38">MailingList.tsx</text>
+  <text x="1055" y="189" text-anchor="middle" font-size="9px" fill="#002244" id="text39">NotificationPage.tsx</text>
+  <!-- Components -->
+  <rect x="913" y="210" width="284" height="130" rx="4" fill="#f5f0ff" stroke="#ccaaee" stroke-width="0.8" id="rect39" />
+  <text x="1055" y="222" text-anchor="middle" font-size="10px" font-weight="700" fill="#000b65" id="text40">Components</text>
+  <line x1="921" y1="227" x2="1189" y2="227" stroke="#ccaaee" stroke-width="0.6" id="line40" />
+  <text x="1055" y="238" text-anchor="middle" font-size="9px" fill="#002244" id="text41">TopNavbar.tsx</text>
+  <text x="1055" y="250" text-anchor="middle" font-size="9px" fill="#002244" id="text42">AuthenticateRoute.tsx</text>
+  <text x="1055" y="262" text-anchor="middle" font-size="9px" fill="#002244" id="text43">AddItemModal.tsx</text>
+  <text x="1055" y="274" text-anchor="middle" font-size="9px" fill="#002244" id="text44">EditItemModal.tsx</text>
+  <text x="1055" y="286" text-anchor="middle" font-size="9px" fill="#002244" id="text45">DeleteConfirmationModal.tsx</text>
+  <text x="1055" y="298" text-anchor="middle" font-size="9px" fill="#002244" id="text46">ItemDetailModal.tsx</text>
+  <text x="1055" y="310" text-anchor="middle" font-size="9px" fill="#002244" id="text47">AddEmailModal.tsx</text>
+  <text x="1055" y="322" text-anchor="middle" font-size="9px" fill="#002244" id="text48">ExportDataModal.tsx</text>
+  <text x="1055" y="334" text-anchor="middle" font-size="9px" fill="#002244" id="text49">LogOut.tsx</text>
+  <!-- Features -->
+  <rect x="913" y="347" width="284" height="62" rx="4" fill="#f0fff5" stroke="#aaeebb" stroke-width="0.8" id="rect49" />
+  <text x="1055" y="359" text-anchor="middle" font-size="10px" font-weight="700" fill="#000b65" id="text50">Features</text>
+  <line x1="921" y1="364" x2="1189" y2="364" stroke="#aaeebb" stroke-width="0.6" id="line50" />
+  <text x="1055" y="375" text-anchor="middle" font-size="9px" fill="#002244" id="text51">StockLevelsCard.tsx</text>
+  <text x="1055" y="387" text-anchor="middle" font-size="9px" fill="#002244" id="text52">StorageActivityChart.tsx</text>
+  <text x="1055" y="399" text-anchor="middle" font-size="9px" fill="#002244" id="text53">SelectItemCard.tsx</text>
+  <!-- Services -->
+  <rect x="913" y="416" width="284" height="96" rx="4" fill="#fff8f0" stroke="#eeccaa" stroke-width="0.8" id="rect53" />
+  <text x="1055" y="428" text-anchor="middle" font-size="10px" font-weight="700" fill="#000b65" id="text54">Services</text>
+  <line x1="921" y1="433" x2="1189" y2="433" stroke="#eeccaa" stroke-width="0.6" id="line54" />
+  <text x="1055" y="444" text-anchor="middle" font-size="9px" fill="#002244" id="text55">item_service.ts</text>
+  <text x="1055" y="456" text-anchor="middle" font-size="9px" fill="#002244" id="text56">user_service.ts</text>
+  <text x="1055" y="468" text-anchor="middle" font-size="9px" fill="#002244" id="text57">emailRecipient_service.ts</text>
+  <text x="1055" y="480" text-anchor="middle" font-size="9px" fill="#002244" id="text58">category.ts</text>
+  <text x="1055" y="492" text-anchor="middle" font-size="9px" fill="#002244" id="text59">authorizationService.ts</text>
+  <text x="1055" y="504" text-anchor="middle" font-size="9px" fill="#002244" id="text60">transaction_service.ts</text>
+  <!-- ═══════════════════════════════════════════════════════
+       DATABASE   x=255  y=535  w=555  h=210  (ends x=810, y=745)
+       35-px gap above (y=500–535) carries "DB Client" label.
+       ═══════════════════════════════════════════════════════ -->
+  <rect x="15.528084" y="306.75482" width="219.39616" height="214.79269" rx="3.9530842" fill="#000b65" stroke="#000b65" stroke-width="1.27174" id="rect60" />
+  <text x="123.82776" y="332.11896" text-anchor="middle" font-size="14px" font-weight="700" fill="#ffb81c" id="text61">Database</text>
+  <text x="123.82776" y="349.11896" text-anchor="middle" font-size="11px" fill="#aaaacc" id="text62">PostgreSQL · Supabase</text>
+  <line x1="26.827757" y1="358.07959" x2="222.52786" y2="358.07959" stroke="#ffb81c" stroke-width="0.486124" opacity="0.5" id="line62" />
+  <!-- DB tables  2 cols × 3 rows
+       col-1 x=265 w=255 centre=392    col-2 x=528 w=255 centre=655 -->
+  <!-- Row 1  y=592 -->
+  <rect x="31.622177" y="365.91333" width="88.155083" height="42.125137" rx="1.3828248" fill="#1a2a7a" stroke="#4db3ff" stroke-width="0.588844" id="rect62" />
+  <text x="74.827759" y="383.11896" text-anchor="middle" font-size="10px" font-weight="600" fill="#4db3ff" id="text63">inventory_item</text>
+  <text x="74.827759" y="399.11896" text-anchor="middle" font-size="9px" fill="#8899cc" id="text64">item table</text>
+  <rect x="131.4817" y="365.91333" width="88.155083" height="42.125137" rx="1.3828248" fill="#1a2a7a" stroke="#4db3ff" stroke-width="0.588844" id="rect64" />
+  <text x="173.82776" y="383.11896" text-anchor="middle" font-size="10px" font-weight="600" fill="#4db3ff" id="text65">user_table</text>
+  <text x="173.82776" y="399.11896" text-anchor="middle" font-size="9px" fill="#8899cc" id="text66">users / auth</text>
+  <!-- Row 2  y=640 -->
+  <rect x="31.622177" y="418.05637" width="88.155083" height="42.125137" rx="1.3828248" fill="#1a2a7a" stroke="#4db3ff" stroke-width="0.588844" id="rect66" />
+  <text x="74.827759" y="435.11896" text-anchor="middle" font-size="10px" font-weight="600" fill="#4db3ff" id="text67">category</text>
+  <text x="74.827759" y="451.11896" text-anchor="middle" font-size="9px" fill="#8899cc" id="text68">item groups</text>
+  <rect x="131.4817" y="418.05637" width="88.155083" height="42.125137" rx="1.3828248" fill="#1a2a7a" stroke="#4db3ff" stroke-width="0.588844" id="rect68" />
+  <text x="173.82776" y="435.11896" text-anchor="middle" font-size="10px" font-weight="600" fill="#4db3ff" id="text69">transaction</text>
+  <text x="173.82776" y="451.11896" text-anchor="middle" font-size="9px" fill="#8899cc" id="text70">history log</text>
+  <!-- Row 3  y=688 -->
+  <rect x="31.622177" y="470.19937" width="88.155083" height="42.125137" rx="1.3828248" fill="#1a2a7a" stroke="#4db3ff" stroke-width="0.588844" id="rect70" />
+  <text x="74.827759" y="487.11896" text-anchor="middle" font-size="10px" font-weight="600" fill="#4db3ff" id="text71">email_recipient</text>
+  <text x="74.827759" y="503.11896" text-anchor="middle" font-size="9px" fill="#8899cc" id="text72">notifications</text>
+  <!-- ═══════════════════════════════════════════════════════
+       CROSS-COMPONENT ARROWS
+       ═══════════════════════════════════════════════════════ -->
+  <!--
+    Arrow 1: Pi camera_upload.py → nginx
+    ─────────────────────────────────────
+    Exit Pi right edge (x=215, y=245) → jog right to x=240 (in the 20-px gap) →
+    rise to nginx centre y=89 → enter nginx left edge (x=275).
+    Label sits in the gap at x=247, centred vertically on the rise (y≈167).
+  -->
+  <path d="m 215,245 h 31 V 89 h 62.37051" fill="none" stroke="#ffb81c" stroke-width="2.5" marker-end="url(#ah-gold)" id="path74" sodipodi:nodetypes="cccc" />
+  <!-- rotate(-90): screen(x,y) → attr x=−y  y=x -->
+  <text transform="rotate(-90)" text-anchor="middle" font-size="10px" font-weight="600" fill="#996600" x="-167" y="260" id="text75">POST /api/upload-image</text>
+  <!--
+    Arrow 2: nginx ↔ User Browser  (REST API)
+    ──────────────────────────────────────────
+    Both arrows run horizontally through the 55-px routing strip (x=790–865).
+    gold  nginx→Browser  y=83
+    blue  Browser→nginx  y=97
+    Label floats above both arrows at the strip midpoint (x=828, y=74).
+    x=828 is entirely within the strip – outside nginx (ends x=790) and
+    outside the Browser box (starts x=865).
+  -->
+  <path d="m 824,83 h 87" fill="none" stroke="#ffb81c" stroke-width="2" marker-end="url(#ah-gold)" id="path75" sodipodi:nodetypes="cc" />
+  <path d="M 913,97 H 824" fill="none" stroke="#4db3ff" stroke-width="2" marker-end="url(#ah-blue)" id="path76" sodipodi:nodetypes="cc" />
+  <text x="868" y="74" text-anchor="middle" font-size="10px" font-weight="600" fill="#cc8800" id="text76">REST API</text>
+  <!--
+    Arrow 3: Backend ↔ Database  (DB Client)
+    ─────────────────────────────────────────
+    Both arrows run in the right-side routing strip (x≈820–826),
+    between the Server/DB right content edge (x=800) and the strip edge (x=810).
+
+    gold  Backend→DB:  exit Backend right (x=800, y=273) →
+                       jog right to x=820  →  descend to DB centre y=640  →
+                       enter DB right side (x=810)
+    blue  DB→Backend:  exit DB right (x=810, y=655)  →
+                       jog right to x=826  →  rise to Backend centre y=293  →
+                       enter Backend right (x=800)
+
+    "DB Client" label sits horizontally in the 35-px gap (y=500–535) at x=838,
+    which is in the routing strip and clear of both Server and Database boxes.
+  -->
+  <path d="m 235.34572,426.27385 h 10 v -114 h 64" fill="none" stroke="#4db3ff" stroke-width="2" marker-end="url(#ah-blue)" id="path78" sodipodi:nodetypes="cccc" />
+  <path d="m 310.34944,291.93432 h -49.93433 v 115.98885 l -24.93556,10e-6" fill="none" stroke="#ffb81c" stroke-width="2" marker-end="url(#ah-gold)" id="path77" sodipodi:nodetypes="cccc" />
+  <!-- "DB Client" sits between the two verticals (x=815 and x=840)
+       rotate(-90): screen(x,y) → attr x=−y  y=x
+       screen centre (828, 456) → x="-456" y="828"            -->
+  <text transform="rotate(-90)" text-anchor="middle" font-size="10px" font-weight="600" fill="#cc8800" x="-381.02106" y="275.60843" id="text78">DB Client</text>
+  <!-- ═══════════════════════════════════════════════════════
+       LEGEND   x=15  y=758  w=1170  h=52
+       ═══════════════════════════════════════════════════════ -->
+  <rect x="186.90121" y="545.90125" width="750.54449" height="52.197548" rx="3.2074552" fill="#ffffff" stroke="#dee2e6" stroke-width="0.802451" id="rect78" />
+  <!-- Row 1: arrow types -->
+  <line x1="207" y1="563" x2="245" y2="563" stroke="#ffb81c" stroke-width="2.5" marker-end="url(#ah-gold)" id="line78" />
+  <text x="251" y="567" font-size="11px" fill="#333333" id="text79">Request / Send</text>
+  <line x1="352" y1="563" x2="390" y2="563" stroke="#4db3ff" stroke-width="2" marker-end="url(#ah-blue)" id="line79" />
+  <text x="396" y="567" font-size="11px" fill="#333333" id="text80">Response / Return</text>
+  <line x1="505" y1="563" x2="543" y2="563" stroke="#000b65" stroke-width="1.5" marker-end="url(#ah-dark)" id="line80" />
+  <text x="549" y="567" font-size="11px" fill="#333333" id="text81">Internal Data Flow</text>
+  <line x1="668" y1="563" x2="706" y2="563" stroke="#28a745" stroke-width="1.5" stroke-dasharray="5, 3" marker-end="url(#ah-green)" id="line81" />
+  <text x="712" y="567" font-size="11px" fill="#333333" id="text82">Subprocess Spawn</text>
+  <!-- Row 2: colour swatches -->
+  <rect x="207" y="578" width="13" height="11" rx="2" fill="#4db3ff" stroke="#000b65" stroke-width="0.8" id="rect82" />
+  <text x="226" y="589" font-size="11px" fill="#333333" id="text83">Frontend / Client</text>
+  <rect x="352" y="578" width="13" height="11" rx="2" fill="#ffb81c" stroke="#cc7700" stroke-width="0.8" id="rect83" />
+  <text x="371" y="589" font-size="11px" fill="#333333" id="text84">Infrastructure</text>
+  <rect x="505" y="578" width="13" height="11" rx="2" fill="#d4edda" stroke="#28a745" stroke-width="0.8" id="rect84" />
+  <text x="524" y="589" font-size="11px" fill="#333333" id="text85">ML Subprocess</text>
+  <rect x="668" y="578" width="13" height="11" rx="2" fill="#e8f4ff" stroke="#4db3ff" stroke-width="0.8" id="rect85" />
+  <text x="687" y="589" font-size="11px" fill="#333333" id="text86">Backend Service</text>
+  <rect x="831" y="578" width="13" height="11" rx="2" fill="#1a2a7a" stroke="#4db3ff" stroke-width="0.8" id="rect86" />
+  <text x="850" y="589" font-size="11px" fill="#333333" id="text87">Database Table</text>
+  <line x1="558.44952" y1="413.43741" x2="558.44952" y2="448.51868" stroke="#28a745" stroke-width="1.42264" stroke-dasharray="5, 3" marker-end="url(#ah-green-4)" id="line70-1-8" style="marker-end:url(#ah-green-4)" />
+</svg>

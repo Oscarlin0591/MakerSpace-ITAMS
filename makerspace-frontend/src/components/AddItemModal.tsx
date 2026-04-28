@@ -2,6 +2,9 @@
  * AddItemModal.tsx
  * A modal that will pop up with form fields to be completed
  * by user to add a new item to the database
+ *
+ * @ai-assisted Claude Code (Anthropic) — https://claude.ai/claude-code
+ * AI used for code review and debugging during development.
  */
 
 import { Modal, Button, Form, InputGroup, Row, Col, Collapse } from 'react-bootstrap';

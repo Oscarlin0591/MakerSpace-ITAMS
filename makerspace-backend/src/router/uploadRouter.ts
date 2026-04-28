@@ -2,6 +2,9 @@
  * uploadRouter.tsx
  * Router that handles image uploads from raspberry pi and
  * spawns a python YOLO model to process the image
+ *
+ * @ai-assisted Claude Code (Anthropic) — https://claude.ai/claude-code
+ * AI used for YOLO subprocess integration review and debugging.
  */
 
 import express, { type Request, type Response, type NextFunction } from 'express';

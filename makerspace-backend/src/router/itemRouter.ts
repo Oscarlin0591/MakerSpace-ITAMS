@@ -1,3 +1,12 @@
+/**
+ * itemRouter.ts
+ * Handles all inventory item routes: CRUD operations, quantity history,
+ * transaction snapshot writes, and low-stock threshold email trigger.
+ *
+ * @ai-assisted Claude Code (Anthropic) — https://claude.ai/claude-code
+ * AI used for code review and threshold logic analysis.
+ */
+
 import { createClient, type PostgrestSingleResponse } from '@supabase/supabase-js';
 import { InventoryItem } from '../models/inventory_item';
 import config from '../config.json';

@@ -1,3 +1,12 @@
+/**
+ * server.ts
+ * Main Express entry point. Mounts all routers, defines auth middleware,
+ * hosts the SSE endpoint for real-time updates, and runs scheduled email jobs.
+ *
+ * @ai-assisted Claude Code (Anthropic) — https://claude.ai/claude-code
+ * AI used for SSE pipeline debugging and cron job review.
+ */
+
 import express, { type NextFunction, type Request, type Response, type Router } from 'express';
 import cors from 'cors';
 import {
