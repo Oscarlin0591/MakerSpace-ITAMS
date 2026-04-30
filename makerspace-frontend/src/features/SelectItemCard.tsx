@@ -133,10 +133,12 @@ export default function SelectItemCard() {
                   <Col sm={6}>
                     <strong>Threshold:</strong> {confirmedItem!.lowThreshold}
                   </Col>
+{/* 
                   <Col sm={12} className="mt-2">
                     <strong>Description:</strong>{' '}
                     {confirmedItem!.description || 'No description provided.'}
-                  </Col>
+                  </Col> */}
+
                 </Row>
               </>
             )}
