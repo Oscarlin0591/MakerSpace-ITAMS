@@ -172,7 +172,7 @@ const initializeServer = async ({
 
   app.use(
     cors({
-      origin: ['http://localhost:3000', 'http://localhost:5173', 'http://172.27.82.14'],
+      origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://172.27.82.14'],
     }),
   );
   app.use(bodyParser.json());
