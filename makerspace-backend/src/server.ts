@@ -495,8 +495,13 @@ const initializeServer = async ({
   apiRouter.post('/category', authorizeAdmin, async (req: Request, res: Response) => {
     try {
       const category = req.body.newCategory;
-      await postCategory(category);
-      return res.status(200).send();
+      // Return the created category so the frontend can read the auto-generated categoryID
+      // and pass it directly to postItem — avoids the item being assigned the wrong category.
+      const result = await postCategory(category);
+      if (!result.success) {
+        return res.status(500).json({ error: result.error?.message ?? 'Failed to insert category' });
+      }
+      return res.status(200).json(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }

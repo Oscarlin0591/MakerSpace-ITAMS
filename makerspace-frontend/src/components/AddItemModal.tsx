@@ -177,7 +177,11 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
     };
 
     if (isAddingNew) {
-      await postCategory(catToSave);
+      // postCategory returns the newly created category with its auto-generated ID.
+      // Pass that ID into itemToSave so postItem assigns the correct category instead
+      // of falling through to the "misc" fallback.
+      const createdCategory = await postCategory(catToSave);
+      itemToSave.categoryID = createdCategory.categoryID;
     }
     await postItem(itemToSave);
     onSave(itemToSave);

@@ -28,5 +28,6 @@ export async function postCategory(category: ItemCategory) {
     .insert({category_name: newCategory.categoryName, units: newCategory.units})
     .select().single();
 
-    return {success: !error, data, error};
+    const mapped = data ? new ItemCategory(data.category_id, data.category_name, data.units) : null;
+    return {success: !error, data: mapped, error};
 }
