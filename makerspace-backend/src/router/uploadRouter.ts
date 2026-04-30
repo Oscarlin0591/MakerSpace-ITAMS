@@ -130,7 +130,8 @@ const triggerInference = () => {
 imageRouter.post('/upload-image', authPi, upload.single('image'), (req: Request, res: Response) => {
   if (!req.file) return res.status(400).json({ error: 'No image provided' });
 
-  const cameraIndex = parseInt(req.body.camera_index ?? '0', 10);
+  const camMatch = req.file.originalname.match(/^cam(\d+)_/);
+  const cameraIndex = camMatch ? parseInt(camMatch[1], 10) : 0;
   pendingImages.push({ path: req.file.path, cameraIndex });
 
   // Start 30s timeout countdown when first image received
