@@ -1,6 +1,7 @@
 # AI Usage Disclosure
 
 **Tool:** Claude Code (Anthropic) — https://claude.ai/claude-code  
+**Additional Tool:** Codex (OpenAI) — https://openai.com/codex  
 **Policy:** SER492-SP26 Syllabus — _"Students are allowed to use AI in development. AI usage must be documented in the code and students should be prepared to discuss and review code with instructor anytime."_
 
 All AI-generated or AI-assisted content was reviewed and validated by the project team before being committed to this repository. Team members are prepared to discuss any file listed here with the instructor.
@@ -33,6 +34,33 @@ These files were written by the project team. AI (Claude Code) was used as a dev
 | `makerspace-frontend/src/service/pendingUpdate_service.ts`    | AI used for full implementation of the pending update service (`getPendingUpdates`, `approveUpdate`, `rejectUpdate`).                                                |
 | `makerspace-frontend/src/App.tsx`                             | AI used to add the `/review-detections` admin-only route.                                                                                                            |
 | `makerspace-frontend/src/components/TopNavbar.tsx`            | AI used to add the Review Detections nav link with a polled pending-count badge (yellow, distinct from the red low-stock badge).                                     |
+
+---
+
+## Codex-Assisted Source Code, Tests, and Test Configuration
+
+These files were updated or created with Codex (OpenAI) assistance for the Jest testing strategy. Commentable files contain an `@ai-assisted Codex (OpenAI)` line in their header block. JSON files are documented here because JSON does not support inline comments.
+
+| File                                                          | How Codex was used                                                                                                                                                 |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `makerspace-backend/src/server.ts`                            | Codex refactored Express app initialization so supertest can exercise routes without starting listeners, cron jobs, email, heartbeat timers, or Supabase realtime. |
+| `makerspace-backend/src/router/uploadRouter.ts`               | Codex extracted inference helpers and subprocess execution seams so Python inference can be mocked and hardware is not touched during tests.                       |
+| `makerspace-backend/jest.config.cjs`                          | Codex configured Jest/ts-jest for backend TypeScript unit tests and supertest integration tests in `makerspace-backend/tests/`.                                   |
+| `makerspace-backend/tsconfig.test.json`                       | Codex added test-specific TypeScript compiler settings for backend Jest execution.                                                                                 |
+| `makerspace-frontend/src/features/StockLevelsCard.tsx`        | Codex moved chart aggregation out of the React component so the business logic can be unit tested.                                                                 |
+| `makerspace-frontend/src/features/stockLevelsData.ts`         | Codex created the pure stock-level chart aggregation helper used by both the component and unit tests.                                                             |
+| `makerspace-frontend/jest.config.cjs`                         | Codex configured Jest/ts-jest, jsdom, React Testing Library setup, and asset mocks for frontend tests in `makerspace-frontend/tests/`.                            |
+| `makerspace-frontend/tsconfig.test.json`                      | Codex added test-specific TypeScript compiler settings for frontend Jest execution.                                                                                |
+| `makerspace-backend/tests/setupEnv.cjs`                       | Codex added backend test environment defaults so tests do not depend on production `.env` values or hardware paths.                                               |
+| `makerspace-backend/tests/server.test.ts`                     | Codex added supertest integration coverage for Express auth and pending-update routes.                                                                             |
+| `makerspace-backend/tests/router/uploadRouter.test.ts`        | Codex added unit coverage for inference queue business logic and mocked Python subprocess execution.                                                               |
+| `makerspace-frontend/tests/setupTests.ts`                     | Codex added React Testing Library setup and browser API mocks for Jest.                                                                                            |
+| `makerspace-frontend/tests/fileMock.ts`                       | Codex added a static asset stub for frontend Jest tests.                                                                                                           |
+| `makerspace-frontend/tests/components/DeleteConfirmationModal.test.tsx` | Codex added React Testing Library coverage for delete confirmation modal interactions.                                                                    |
+| `makerspace-frontend/tests/features/stockLevelsData.test.ts`  | Codex added unit coverage for stock-level chart aggregation business logic.                                                                                        |
+| `package.json`                                                | Codex added root npm scripts for running backend, frontend, and combined test suites.                                                                              |
+| `makerspace-backend/package.json`                             | Codex added backend npm test scripts and Jest-related dev dependencies.                                                                                            |
+| `makerspace-frontend/package.json`                            | Codex added frontend npm test scripts and Jest/React Testing Library dev dependencies.                                                                             |
 
 ---
 

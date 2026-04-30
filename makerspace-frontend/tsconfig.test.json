@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "rootDir": ".",
+    "types": ["vite/client", "node", "jest", "react", "react-dom"],
+    "verbatimModuleSyntax": false,
+    "erasableSyntaxOnly": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["src", "tests"]
+}

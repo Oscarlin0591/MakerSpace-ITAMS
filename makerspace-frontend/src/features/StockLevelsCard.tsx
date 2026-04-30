@@ -3,6 +3,9 @@
  * An interactive bar chart that displays general inventory
  * data and provides more detailed inventory information upon
  * clicking individual bars
+ *
+ * @ai-assisted Codex (OpenAI) — https://openai.com/codex
+ * AI used to extract chart aggregation logic for Jest unit testing.
  */
 
 import { useState, useEffect } from 'react';
@@ -25,45 +28,7 @@ import type { Category, InventoryItem } from '../types';
 import { API_BASE_URL } from '../types';
 import ExportDataModal from '../components/ExportDataModal';
 import { type BackendTransaction, getTransactions } from '../service/transaction_service.ts';
-
-type ChartData = {
-  name: string;
-  total: number;
-  lowThreshold: number;
-  units: string;
-  tooltipInfo?: ChartData[];
-};
-
-// Aggregates raw items + categories into the shape recharts expects.
-// Extracted so both the initial fetch and the SSE rebuild can call the same logic.
-function buildChartData(items: InventoryItem[], categories: Category[]): ChartData[] {
-  const categoryMap: { [key: number]: { name: string; units: string; items: InventoryItem[] } } =
-    {};
-  categories.forEach((cat) => {
-    categoryMap[cat.categoryID] = { name: cat.categoryName, units: cat.units || 'units', items: [] };
-  });
-  items.forEach((it) => {
-    const entry = categoryMap[it.categoryID] || {
-      name: 'Uncategorized',
-      units: 'units',
-      items: [],
-    };
-    entry.items.push(it);
-    categoryMap[it.categoryID] = entry;
-  });
-  return Object.values(categoryMap).map((c) => ({
-    name: c.name,
-    total: c.items.reduce((s, it) => s + (it.quantity || 0), 0),
-    lowThreshold: c.items.reduce((s, it) => s + (it.lowThreshold || 0), 0),
-    units: c.units,
-    tooltipInfo: c.items.map((it) => ({
-      name: it.itemName,
-      total: it.quantity,
-      lowThreshold: it.lowThreshold,
-      units: c.units,
-    })),
-  }));
-}
+import { buildChartData, type ChartData } from './stockLevelsData';
 
 export default function StockLevelsCard() {
   const [cookies] = useCookies(['token']);

@@ -5,6 +5,9 @@
  *
  * @ai-assisted Claude Code (Anthropic) — https://claude.ai/claude-code
  * AI used for SSE pipeline debugging and cron job review.
+ *
+ * @ai-assisted Codex (OpenAI) — https://openai.com/codex
+ * AI used for Jest/supertest testability refactor.
  */
 
 import express, { type NextFunction, type Request, type Response, type Router } from 'express';
@@ -17,7 +20,6 @@ import {
   getItemHistory,
   getAllItemHistory,
 } from './router/itemRouter';
-import fs from 'fs';
 import { authenticateUser, getUser } from './router/userRouter';
 import { getEmail, postEmail, putEmail, deleteEmail } from './router/emailRouter';
 import { getCategory, postCategory } from './router/categoryRouter';
@@ -25,8 +27,6 @@ import { getTransaction } from './router/transactionRouter';
 import bodyParser from 'body-parser';
 import jwt from 'jsonwebtoken';
 import { type JwtUserPayload } from './types/express';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import imageRouter, { pendingUpdates, type PendingUpdate } from './router/uploadRouter';
 import nodemailer from 'nodemailer';
@@ -44,16 +44,6 @@ declare global {
       user?: JwtUserPayload;
     }
   }
-}
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Check if config file exists. If not end the process.
-const configPath = path.resolve(__dirname, 'config.json');
-if (!fs.existsSync(configPath)) {
-  console.error('Please added the config.json file to backend src directory.');
-  process.exit(1);
 }
 
 const app = express();
@@ -119,20 +109,40 @@ function authorizeAdmin(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-const initializeServer = async () => {
-  // Create a test account automatically
-  const testAccount = await nodemailer.createTestAccount();
+type ServerOptions = {
+  startListening?: boolean;
+  enableEmail?: boolean;
+  enableScheduledJobs?: boolean;
+  enableRealtime?: boolean;
+  enableHeartbeat?: boolean;
+};
 
-  // Create a transporter using the test account
-  const transporter = nodemailer.createTransport({
-    host: testAccount.smtp.host,
-    port: testAccount.smtp.port,
-    secure: testAccount.smtp.secure,
-    auth: {
-      user: testAccount.user,
-      pass: testAccount.pass,
-    },
-  });
+const initializeServer = async ({
+  startListening = true,
+  enableEmail = true,
+  enableScheduledJobs = true,
+  enableRealtime = true,
+  enableHeartbeat = true,
+}: ServerOptions = {}) => {
+  let activeTransporter: any = {
+    sendMail: async () => ({ messageId: 'email-disabled' }),
+  };
+
+  if (enableEmail) {
+    // Create a test account automatically
+    const testAccount = await nodemailer.createTestAccount();
+
+    // Create a transporter using the test account
+    activeTransporter = nodemailer.createTransport({
+        host: testAccount.smtp.host,
+        port: testAccount.smtp.port,
+        secure: testAccount.smtp.secure,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
+      });
+  }
 
   async function sendEmail(summary: string, recipient: string) {
     const itemResponse = await getItem();
@@ -149,7 +159,7 @@ const initializeServer = async () => {
       .map((item: InventoryItem) => `${item.itemName}: ${item.quantity}`)
       .join('\n');
     const html = toTable(inventory);
-    const info = await transporter.sendMail({
+    const info = await activeTransporter.sendMail({
       from: '"Quinnipiac ITAMS" <do-not-reply@quinnipiac.edu>',
       to: recipient,
       subject: summary,
@@ -170,23 +180,25 @@ const initializeServer = async () => {
   );
   app.use(bodyParser.json());
 
-  nodeCron.schedule('0 12 * * *', () => {
-    getEmail().then((emails) => {
-      const emailData: EmailRecipient[] = emails.data;
-      for (let email in emailData.filter((email) => email.daily).map((email) => email.email)) {
-        sendEmail('Daily inventory summary', email);
-      }
+  if (enableScheduledJobs) {
+    nodeCron.schedule('0 12 * * *', () => {
+      getEmail().then((emails) => {
+        const emailData: EmailRecipient[] = emails.data;
+        for (let email in emailData.filter((email) => email.daily).map((email) => email.email)) {
+          sendEmail('Daily inventory summary', email);
+        }
+      });
     });
-  });
 
-  nodeCron.schedule('0 12 * * 6', () => {
-    getEmail().then((emails) => {
-      const emailData: EmailRecipient[] = emails.data;
-      for (let email of emailData.filter((email) => email.weekly).map((email) => email.email)) {
-        sendEmail('Weekly inventory summary', email);
-      }
+    nodeCron.schedule('0 12 * * 6', () => {
+      getEmail().then((emails) => {
+        const emailData: EmailRecipient[] = emails.data;
+        for (let email of emailData.filter((email) => email.weekly).map((email) => email.email)) {
+          sendEmail('Weekly inventory summary', email);
+        }
+      });
     });
-  });
+  }
 
   // =============================================================================================================================
   // Supabase Realtime → SSE fan-out
@@ -198,47 +210,51 @@ const initializeServer = async () => {
   // Requires Realtime to be enabled on both tables in the Supabase dashboard
   // (Database → Replication → toggle INSERT/UPDATE/DELETE per table).
 
-  const realtimeClient = createClient(
-    config.VITE_SUPABASE_URL,
-    config.VITE_SUPABASE_PUBLISHABLE_KEY,
-  );
+  if (enableRealtime) {
+    const realtimeClient = createClient(
+      config.VITE_SUPABASE_URL,
+      config.VITE_SUPABASE_PUBLISHABLE_KEY,
+    );
 
-  realtimeClient
-    .channel('db-changes')
-    // New transaction row = a quantity was recorded; the chart needs a new point.
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'transaction' },
-      (payload) => {
-        broadcastSSE('transaction_insert', payload.new);
-      },
-    )
-    // Any inventory_item mutation = item list may need refreshing on the frontend.
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'inventory_item' },
-      (payload) => {
-        broadcastSSE('inventory_change', {
-          eventType: payload.eventType,
-          record: payload.new,
-        });
-      },
-    )
-    .subscribe((status) => {
-      console.log('Supabase Realtime status:', status);
-    });
+    realtimeClient
+      .channel('db-changes')
+      // New transaction row = a quantity was recorded; the chart needs a new point.
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'transaction' },
+        (payload) => {
+          broadcastSSE('transaction_insert', payload.new);
+        },
+      )
+      // Any inventory_item mutation = item list may need refreshing on the frontend.
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'inventory_item' },
+        (payload) => {
+          broadcastSSE('inventory_change', {
+            eventType: payload.eventType,
+            record: payload.new,
+          });
+        },
+      )
+      .subscribe((status) => {
+        console.log('Supabase Realtime status:', status);
+      });
+  }
 
   // Proxies and browsers silently drop idle HTTP connections after ~30–60 s.
   // Sending an SSE comment frame every 25 s keeps every open stream alive.
-  setInterval(() => {
-    sseClients.forEach((res) => {
-      try {
-        res.write(': heartbeat\n\n');
-      } catch {
-        sseClients.delete(res);
-      }
-    });
-  }, 25_000);
+  if (enableHeartbeat) {
+    setInterval(() => {
+      sseClients.forEach((res) => {
+        try {
+          res.write(': heartbeat\n\n');
+        } catch {
+          sseClients.delete(res);
+        }
+      });
+    }, 25_000);
+  }
 
   // =============================================================================================================================
   // item routes
@@ -573,9 +589,17 @@ const initializeServer = async () => {
   // Mount API router at /api path
   app.use('/api', apiRouter);
 
-  app.listen(port, () => {
-    console.log(`Listening on port: ${port}`);
-  });
+  if (startListening) {
+    app.listen(port, () => {
+      console.log(`Listening on port: ${port}`);
+    });
+  }
+
+  return app;
 };
 
-main();
+if (process.env.NODE_ENV !== 'test') {
+  main();
+}
+
+export { app, initializeServer, authorizeUser, authorizeAdmin };

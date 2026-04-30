@@ -10,7 +10,10 @@
     "install:backend": "npm --prefix makerspace-backend install",
     "install:frontend": "npm --prefix makerspace-frontend install",
     "build:frontend": "npm --prefix makerspace-frontend run build",
-    "lint": "npm --prefix makerspace-frontend run lint"
+    "lint": "npm --prefix makerspace-frontend run lint",
+    "test": "npm --prefix makerspace-backend test && npm --prefix makerspace-frontend test",
+    "test:backend": "npm --prefix makerspace-backend test",
+    "test:frontend": "npm --prefix makerspace-frontend test"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
