@@ -176,3 +176,24 @@ export async function getItemsByCameraId(cameraId: number): Promise<InventoryIte
       ),
   );
 }
+
+export async function getItemsWithNullCamera(): Promise<InventoryItem[]> {
+  const { data } = await supabase
+    .from('inventory_item')
+    .select()
+    .is('camera_id', null)
+    .not('yolo_labels', 'is', null);
+
+  return (data ?? []).map(
+    (item) =>
+      new InventoryItem(
+        item.item_id,
+        item.item_name,
+        item.category_id,
+        item.quantity,
+        item.threshold,
+        item.yolo_labels,
+        item.camera_id,
+      ),
+  );
+}

@@ -22,12 +22,17 @@ These files were produced entirely by AI from prompts and source-code analysis. 
 
 These files were written by the project team. AI (Claude Code) was used as a development tool — for debugging, code review, and analysis — in the same way a developer might use a linter or consult Stack Overflow. Each file contains an `@ai-assisted` line in its header JSDoc block.
 
-| File                                                  | How AI was used                                                                                                             |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `makerspace-backend/src/server.ts`                    | AI reviewed the SSE fan-out pipeline (Supabase Realtime → `broadcastSSE()`) and cron job scheduling logic during debugging. |
-| `makerspace-backend/src/router/itemRouter.ts`         | AI reviewed the low-stock threshold crossing logic and performed general code review.                                       |
-| `makerspace-backend/src/router/uploadRouter.ts`       | AI reviewed the YOLO subprocess spawn and queue integration during integration debugging.                                   |
-| `makerspace-frontend/src/components/AddItemModal.tsx` | AI used for general code review during development.                                                                         |
+| File                                                          | How AI was used                                                                                                                                                      |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `makerspace-backend/src/server.ts`                            | AI reviewed the SSE fan-out pipeline (Supabase Realtime → `broadcastSSE()`) and cron job scheduling logic during debugging. AI added pending-update approval endpoints (`GET/POST/DELETE /api/pending-updates`). |
+| `makerspace-backend/src/router/itemRouter.ts`                 | AI reviewed the low-stock threshold crossing logic and performed general code review. AI added `getItemsWithNullCamera()` for cross-camera item tracking.            |
+| `makerspace-backend/src/router/uploadRouter.ts`               | AI reviewed the YOLO subprocess spawn and queue integration during integration debugging. AI added the `PendingUpdate` queue, `queueUpdate()` helper, and null-camera aggregation logic. |
+| `makerspace-frontend/src/components/AddItemModal.tsx`         | AI used for general code review during development. AI updated camera/YOLO validation to allow null-camera cross-camera tracking.                                    |
+| `makerspace-frontend/src/components/EditItemModal.tsx`        | AI used for general code review during development. AI added the camera/YOLO Advanced section and null-camera cross-camera tracking support.                         |
+| `makerspace-frontend/src/pages/ReviewDetections.tsx`          | AI used for full implementation of the YOLO approval review page (admin-only, polled queue with approve/reject per row and bulk approve).                            |
+| `makerspace-frontend/src/service/pendingUpdate_service.ts`    | AI used for full implementation of the pending update service (`getPendingUpdates`, `approveUpdate`, `rejectUpdate`).                                                |
+| `makerspace-frontend/src/App.tsx`                             | AI used to add the `/review-detections` admin-only route.                                                                                                            |
+| `makerspace-frontend/src/components/TopNavbar.tsx`            | AI used to add the Review Detections nav link with a polled pending-count badge (yellow, distinct from the red low-stock badge).                                     |
 
 ---
 

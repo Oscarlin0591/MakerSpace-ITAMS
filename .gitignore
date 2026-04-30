@@ -1,2 +1,15 @@
+# IDE
 .idea/
+.vscode/*
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+
+# Secrets / local config
 makerspace-backend/src/config.json
+.env
+.env.*
+!.env.example
+
+node_modules/

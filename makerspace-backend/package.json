@@ -27,6 +27,7 @@
     "emailjs": "^5.0.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.3",
+    "makerspace-itams": "file:..",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.2",

@@ -1,10 +1,13 @@
 /**
  * uploadRouter.tsx
  * Router that handles image uploads from raspberry pi and
- * spawns a python YOLO model to process the image
+ * spawns a python YOLO model to process the image.
+ * Inference results are queued as pending updates for admin approval
+ * rather than being written to the database immediately.
  *
  * @ai-assisted Claude Code (Anthropic) — https://claude.ai/claude-code
- * AI used for YOLO subprocess integration review and debugging.
+ * AI used for YOLO subprocess integration review, debugging, approval queue integration,
+ * and null-camera cross-camera aggregation logic.
  */
 
 import express, { type Request, type Response, type NextFunction } from 'express';
@@ -12,7 +15,9 @@ import multer from 'multer';
 import path from 'path';
 import dotenv from 'dotenv';
 import { spawn } from 'child_process';
-import { getItemsByCameraId, putItem } from './itemRouter';
+import { randomUUID } from 'crypto';
+import { getItemsByCameraId, getItemsWithNullCamera } from './itemRouter';
+import { InventoryItem } from '../models/inventory_item';
 dotenv.config();
 
 const imageRouter = express.Router();
@@ -58,6 +63,45 @@ interface PendingImage {
   cameraIndex: number;
 }
 
+export interface PendingUpdate {
+  id: string;
+  itemID: number;
+  itemName: string;
+  cameraIndex: number | null;
+  currentQuantity: number;
+  proposedQuantity: number;
+  timestamp: string;
+  labelCounts: Record<string, number>;
+}
+
+export const pendingUpdates: PendingUpdate[] = [];
+
+export function queueUpdate(
+  item: InventoryItem,
+  proposedQuantity: number,
+  cameraIndex: number | null,
+  labelCounts: Record<string, number>,
+): void {
+  const update: PendingUpdate = {
+    id: randomUUID(),
+    itemID: item.itemID,
+    itemName: item.itemName,
+    cameraIndex,
+    currentQuantity: item.quantity,
+    proposedQuantity,
+    timestamp: new Date().toISOString(),
+    labelCounts,
+  };
+
+  // Replace any existing pending update for this item so there is at most one per item
+  const existingIdx = pendingUpdates.findIndex((u) => u.itemID === item.itemID);
+  if (existingIdx !== -1) {
+    pendingUpdates[existingIdx] = update;
+  } else {
+    pendingUpdates.push(update);
+  }
+}
+
 const upload = multer({ storage: storage });
 let pendingImages: PendingImage[] = []; // Two cameras. Track multiple pending images
 let inferenceTimeout: NodeJS.Timeout | null = null; // Handle timeout due to not receiving two images
@@ -91,6 +135,7 @@ const triggerInference = () => {
     try {
       const perImageCounts: Record<string, number>[] = JSON.parse(data.toString());
 
+      // Per-camera items: queue updates for items assigned to a specific camera
       for (let i = 0; i < imagesToProcess.length; i++) {
         const { cameraIndex } = imagesToProcess[i];
         const labelCounts = perImageCounts[i] ?? {};
@@ -101,13 +146,27 @@ const triggerInference = () => {
           const newQuantity = item.yoloLabels.reduce(
             (sum, label) => sum + (labelCounts[label] ?? 0), 0
           );
-          const result = await putItem(item.itemID, { ...item, quantity: newQuantity });
-          if (!result.success) {
-            console.error(`Failed to update ${item.itemName}:`, result.error?.message);
-          } else {
-            console.log(`Updated ${item.itemName} → ${newQuantity}`);
-          }
+          queueUpdate(item, newQuantity, cameraIndex, labelCounts);
+          console.log(`Queued update for ${item.itemName} → ${newQuantity} (camera ${cameraIndex})`);
         }
+      }
+
+      // Null-camera items: sum counts across all cameras in this batch
+      const combinedLabelCounts: Record<string, number> = {};
+      for (const counts of perImageCounts) {
+        for (const [label, count] of Object.entries(counts)) {
+          combinedLabelCounts[label] = (combinedLabelCounts[label] ?? 0) + count;
+        }
+      }
+
+      const nullCameraItems = await getItemsWithNullCamera();
+      for (const item of nullCameraItems) {
+        if (!item.yoloLabels?.length) continue;
+        const newQuantity = item.yoloLabels.reduce(
+          (sum, label) => sum + (combinedLabelCounts[label] ?? 0), 0
+        );
+        queueUpdate(item, newQuantity, null, combinedLabelCounts);
+        console.log(`Queued update for null-camera item ${item.itemName} → ${newQuantity}`);
       }
     } catch (e) {
       console.error('Inference Output Error', data.toString());

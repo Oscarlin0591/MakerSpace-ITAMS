@@ -28,7 +28,7 @@ import { type JwtUserPayload } from './types/express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import imageRouter from './router/uploadRouter';
+import imageRouter, { pendingUpdates, type PendingUpdate } from './router/uploadRouter';
 import nodemailer from 'nodemailer';
 import { InventoryItem } from './models/inventory_item.ts';
 import nodeCron from 'node-cron';
@@ -358,6 +358,57 @@ const initializeServer = async () => {
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
+  });
+
+  // =============================================================================================================================
+  // Pending YOLO update review routes (admin only)
+  // Inference results are queued here instead of writing directly to the DB.
+  // Admins approve or reject each proposed quantity change on the Review Detections page.
+
+  apiRouter.get('/pending-updates', authorizeAdmin, (_req: Request, res: Response) => {
+    return res.status(200).json(pendingUpdates);
+  });
+
+  apiRouter.post('/pending-updates/:id/approve', authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const idx = pendingUpdates.findIndex((u: PendingUpdate) => u.id === id);
+      if (idx === -1) return res.status(404).json({ error: 'Pending update not found' });
+
+      const update = pendingUpdates[idx];
+      const itemResult = await getItem(update.itemID);
+      if (!itemResult.data) return res.status(404).json({ error: 'Item not found' });
+
+      const item = itemResult.data as InventoryItem;
+      const oldQty = item.quantity;
+      const result = await putItem(update.itemID, { ...item, quantity: update.proposedQuantity });
+      if (!result.success) {
+        return res.status(500).json({ error: result.error?.message ?? 'Failed to update item' });
+      }
+
+      // Fire low-stock alert email if quantity crosses the threshold (same logic as PUT /items/:id)
+      if (update.proposedQuantity <= item.lowThreshold && oldQty > item.lowThreshold) {
+        getEmail().then((emails) => {
+          const emailData: EmailRecipient[] = emails.data;
+          for (const email of emailData.filter((e) => e.alerts).map((e) => e.email)) {
+            sendEmail('Low stock alert', email);
+          }
+        });
+      }
+
+      pendingUpdates.splice(idx, 1);
+      return res.status(200).json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ error: 'Unexpected backend error' });
+    }
+  });
+
+  apiRouter.delete('/pending-updates/:id', authorizeAdmin, (req: Request, res: Response) => {
+    const { id } = req.params;
+    const idx = pendingUpdates.findIndex((u: PendingUpdate) => u.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'Pending update not found' });
+    pendingUpdates.splice(idx, 1);
+    return res.status(200).json({ success: true });
   });
 
   // =============================================================================================================================
