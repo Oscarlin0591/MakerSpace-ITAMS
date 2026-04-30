@@ -63,9 +63,9 @@ A full-stack, real-time inventory management system built for the Quinnipiac Uni
 | --------------- | ------------------------------------------------------------------------------- |
 | Frontend        | React 19 + TypeScript, Vite, React Router v7, React-Bootstrap, Recharts, Axios  |
 | Backend         | Express 5 + TypeScript, Node.js 20, tsx (ESM loader)                            |
-| Database        | Supabase (PostgreSQL + Realtime WebSocket)                                      |
+| Database        | Supabase (PostgreSQL)                                                            |
 | Auth            | JWT (24h expiry, bcrypt password hashing)                                       |
-| Real-time       | Supabase Realtime → Server-Sent Events fan-out                                  |
+| Real-time       | Server-Sent Events (broadcast directly from route handlers)                     |
 | Email           | Nodemailer (Ethereal test account by default — see [Email Notes](#email-notes)) |
 | Scheduling      | node-cron                                                                       |
 | ML Inference    | YOLO26 (Ultralytics) via Python subprocess                                      |
@@ -81,7 +81,7 @@ A full-stack, real-time inventory management system built for the Quinnipiac Uni
   <img alt="System Architecture" src="docs/SystemArchitecture/archtiecture.svg" style="max-width:100%;" />
 </p>
 
-The Pi Client submits images over HTTP to Nginx, which reverse-proxies all `/api/` traffic to the Node.js backend running on port 3000. The backend reads and writes to Supabase (PostgreSQL), subscribes to Supabase Realtime for change events, and fans those events out to connected browsers over Server-Sent Events. YOLO inference runs as a Python subprocess spawned on demand by the upload router.
+The Pi Client submits images over HTTP to Nginx, which reverse-proxies all `/api/` traffic to the Node.js backend running on port 3000. The backend reads and writes to Supabase (PostgreSQL) and broadcasts inventory change events directly to connected browsers over Server-Sent Events. YOLO inference runs as a Python subprocess spawned on demand by the upload router.
 
 ---
 
@@ -208,8 +208,7 @@ The five tables required are `user_table`, `inventory_item`, `category`, `transa
 | `transaction`     | `transaction_id` (PK), `item_id` (FK), `quantity`, `recorded_at`                                     |
 | `email_recipient` | `email` (PK), `alert_notifications`, `daily_notifications`, `weekly_notifications`                   |
 
-Enable **Supabase Realtime** on the `inventory_item` and `transaction` tables:  
-Supabase Dashboard → **Database → Replication → Tables** → toggle both on.
+No additional Supabase configuration is required for real-time updates — the backend broadcasts SSE events directly from route handlers.
 
 ### Creating the first admin account
 
@@ -621,5 +620,4 @@ pm2 restart itams-backend --update-env
 ### Supabase
 
 - **Credentials:** Project URL and anon key are in `/var/www/ITAMS/backend-node/src/config.json`
-- **Realtime:** Must be enabled on `inventory_item` and `transaction` tables (Dashboard → Database → Replication)
 - **Row Level Security:** Disabled by design — the backend is the sole access point; all auth is handled at the API layer

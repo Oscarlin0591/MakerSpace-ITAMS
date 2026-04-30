@@ -128,9 +128,10 @@ const buildAggregateSeries = (
     eventsByDay.get(dayKey)!.push(s);
   });
 
-  const startDay = baseline.size > 0
-    ? new Date(cutoff).toISOString().slice(0, 10)
-    : inRange[0].recorded_at.slice(0, 10);
+  const startDay =
+    baseline.size > 0
+      ? new Date(cutoff).toISOString().slice(0, 10)
+      : inRange[0].recorded_at.slice(0, 10);
 
   const running = new Map(baseline);
   const points: SeriesPoint[] = [];
@@ -160,7 +161,9 @@ export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) 
 
   // Full unfiltered history cached here — re-fetched only when selectedItem changes,
   // not on every timeframe button click.
-  const [rawHistory, setRawHistory] = useState<QuantitySnapshot[] | ItemQuantitySnapshot[] | null>(null);
+  const [rawHistory, setRawHistory] = useState<QuantitySnapshot[] | ItemQuantitySnapshot[] | null>(
+    null,
+  );
 
   // Fetch the full history once on mount / when the selected item changes.
   // Live updates after that come through the SSE stream below — no polling needed.
@@ -397,7 +400,7 @@ export const ActivityChart: FC<ActivityChartProps> = ({ series, selectedItem }) 
                 borderRadius: 6,
                 color: 'var(--qu-dark)',
               }}
-              labelFormatter={(_ts: number, payload: Array<{ payload: SeriesPoint }>) => {
+              labelFormatter={(_ts: number, payload: ReadonlyArray<{ payload?: SeriesPoint }>) => {
                 const point = payload?.[0]?.payload;
                 if (point?.actualTs) {
                   return new Date(point.actualTs).toLocaleDateString('en-US', {

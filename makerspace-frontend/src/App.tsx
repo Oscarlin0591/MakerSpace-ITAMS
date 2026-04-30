@@ -13,6 +13,7 @@ import { UserProvider } from './contexts/user';
 import { NotificationProvider } from './contexts/notifications';
 import { NotificationPage } from './pages/NotificationPage.tsx';
 import { NotificationListener } from './components/NotificationListener.tsx';
+import ReviewDetections from './pages/ReviewDetections.tsx';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -69,6 +70,10 @@ function App() {
           <Route
             path="/mailing-list"
             element={<AuthenticateRoute element={<MailingList />} adminOnly={true} />}
+          />
+          <Route
+            path="/review-detections"
+            element={<AuthenticateRoute element={<ReviewDetections />} adminOnly={true} />}
           />
 
           <Route path="/logout" element={<LogOut logOut={removeToken} />} />

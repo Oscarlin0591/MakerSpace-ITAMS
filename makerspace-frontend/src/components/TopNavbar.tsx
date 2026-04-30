@@ -4,10 +4,28 @@ import { BoxArrowRight } from 'react-bootstrap-icons';
 import Logo from '../assets/Logo.svg';
 import { useUser } from '../contexts/user';
 import { useNotifications } from '../contexts/notifications';
+import { useState, useEffect } from 'react';
+import { getPendingUpdates } from '../service/pendingUpdate_service';
 
 export default function TopNavbar() {
   const { isAdmin, isAuthenticated } = useUser();
   const { hasUnread, unreadCount } = useNotifications();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    let mounted = true;
+    const fetchCount = async () => {
+      const updates = await getPendingUpdates();
+      if (mounted) setPendingCount(updates.length);
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 15000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [isAdmin]);
 
   if (!isAuthenticated) return null;
 
@@ -31,6 +49,16 @@ export default function TopNavbar() {
           {isAdmin && (
             <Nav.Link as={Link} to="/mailing-list" className="fw-bold nav-option">
               Mailing List
+            </Nav.Link>
+          )}
+          {isAdmin && (
+            <Nav.Link as={Link} to="/review-detections" className="fw-bold nav-option">
+              Review Detections{' '}
+              {pendingCount > 0 && (
+                <Badge bg="warning" text="dark" pill style={{ fontSize: '0.65rem', verticalAlign: 'middle' }}>
+                  {pendingCount}
+                </Badge>
+              )}
             </Nav.Link>
           )}
           <Nav.Link as={Link} to="/manage-inventory" className="fw-bold nav-option">

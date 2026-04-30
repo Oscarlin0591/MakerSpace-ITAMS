@@ -134,10 +134,10 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
   const isExistingCategoryInvalid = !isAddingNew && !newItem.categoryName;
   const isNewCategoryInvalid = isAddingNew && !newCategory.categoryName;
   const areNewUnitsInvalid = isAddingNew && !newCategory.units;
-  // cameraId and yoloLabels must both be set or both be empty
+  // Camera without labels is invalid; labels without camera is valid (tracks across all cameras)
   const hasCameraId = newItem.cameraId !== null && newItem.cameraId !== undefined;
   const hasYoloLabels = yoloLabelsInput.trim() !== '';
-  const isCameraLabelsMismatch = hasCameraId !== hasYoloLabels;
+  const isCameraLabelsMismatch = hasCameraId && !hasYoloLabels;
 
   // Handle saving
   const handleSave = async () => {
@@ -333,14 +333,14 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
                           cameraId: e.target.value === '' ? null : parseInt(e.target.value, 10),
                         }))
                       }
-                      isInvalid={validated && isCameraLabelsMismatch && !hasCameraId}
+                      isInvalid={validated && isCameraLabelsMismatch}
                     >
-                      <option value="">None</option>
+                      <option value="">None (track across all cameras)</option>
                       <option value="0">Camera 0 (Creality)</option>
                       <option value="1">Camera 1 (Bambu)</option>
                     </Form.Select>
                     <Form.Control.Feedback type="invalid">
-                      Required when YOLO labels are set.
+                      YOLO labels are required when a camera is selected.
                     </Form.Control.Feedback>
                   </Form.Group>
                   <Form.Group as={Col} controlId="formYoloLabels">
@@ -350,7 +350,7 @@ function AddItemModal({ show, onCancel, onSave, existingCategories }: ModalProps
                       placeholder="e.g. filament-box, filament-spool"
                       value={yoloLabelsInput}
                       onChange={(e) => setYoloLabelsInput(e.target.value)}
-                      isInvalid={validated && isCameraLabelsMismatch && !hasYoloLabels}
+                      isInvalid={validated && isCameraLabelsMismatch}
                     />
                     <Form.Text className="text-muted">Comma-separated model label names.</Form.Text>
                     <Form.Control.Feedback type="invalid">

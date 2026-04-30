@@ -5,6 +5,9 @@
  *
  * @ai-assisted Claude Code (Anthropic) — https://claude.ai/claude-code
  * AI used for SSE pipeline debugging and cron job review.
+ *
+ * @ai-assisted Codex (OpenAI) — https://openai.com/codex
+ * AI used for Jest/supertest testability refactor.
  */
 
 import express, { type NextFunction, type Request, type Response, type Router } from 'express';
@@ -17,7 +20,6 @@ import {
   getItemHistory,
   getAllItemHistory,
 } from './router/itemRouter';
-import fs from 'fs';
 import { authenticateUser, getUser } from './router/userRouter';
 import { getEmail, postEmail, putEmail, deleteEmail } from './router/emailRouter';
 import { getCategory, postCategory } from './router/categoryRouter';
@@ -25,16 +27,12 @@ import { getTransaction } from './router/transactionRouter';
 import bodyParser from 'body-parser';
 import jwt from 'jsonwebtoken';
 import { type JwtUserPayload } from './types/express';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import imageRouter from './router/uploadRouter';
+import imageRouter, { pendingUpdates, type PendingUpdate } from './router/uploadRouter';
 import nodemailer from 'nodemailer';
 import { InventoryItem } from './models/inventory_item.ts';
 import nodeCron from 'node-cron';
 import { EmailRecipient } from './models/email_recipient.ts';
-import { createClient } from '@supabase/supabase-js';
-import config from './config.json';
 dotenv.config();
 
 // Extend express request to include nullable user type
@@ -44,16 +42,6 @@ declare global {
       user?: JwtUserPayload;
     }
   }
-}
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Check if config file exists. If not end the process.
-const configPath = path.resolve(__dirname, 'config.json');
-if (!fs.existsSync(configPath)) {
-  console.error('Please added the config.json file to backend src directory.');
-  process.exit(1);
 }
 
 const app = express();
@@ -119,20 +107,39 @@ function authorizeAdmin(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-const initializeServer = async () => {
-  // Create a test account automatically
-  const testAccount = await nodemailer.createTestAccount();
+type ServerOptions = {
+  startListening?: boolean;
+  enableEmail?: boolean;
+  enableScheduledJobs?: boolean;
+  enableRealtime?: boolean;
+  enableHeartbeat?: boolean;
+};
 
-  // Create a transporter using the test account
-  const transporter = nodemailer.createTransport({
-    host: testAccount.smtp.host,
-    port: testAccount.smtp.port,
-    secure: testAccount.smtp.secure,
-    auth: {
-      user: testAccount.user,
-      pass: testAccount.pass,
-    },
-  });
+const initializeServer = async ({
+  startListening = true,
+  enableEmail = true,
+  enableScheduledJobs = true,
+  enableHeartbeat = true,
+}: ServerOptions = {}) => {
+  let activeTransporter: any = {
+    sendMail: async () => ({ messageId: 'email-disabled' }),
+  };
+
+  if (enableEmail) {
+    // Create a test account automatically
+    const testAccount = await nodemailer.createTestAccount();
+
+    // Create a transporter using the test account
+    activeTransporter = nodemailer.createTransport({
+      host: testAccount.smtp.host,
+      port: testAccount.smtp.port,
+      secure: testAccount.smtp.secure,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
+  }
 
   async function sendEmail(summary: string, recipient: string) {
     const itemResponse = await getItem();
@@ -149,7 +156,7 @@ const initializeServer = async () => {
       .map((item: InventoryItem) => `${item.itemName}: ${item.quantity}`)
       .join('\n');
     const html = toTable(inventory);
-    const info = await transporter.sendMail({
+    const info = await activeTransporter.sendMail({
       from: '"Quinnipiac ITAMS" <do-not-reply@quinnipiac.edu>',
       to: recipient,
       subject: summary,
@@ -165,80 +172,44 @@ const initializeServer = async () => {
 
   app.use(
     cors({
-      origin: ['http://localhost:3000', 'http://localhost:5173', 'http://172.27.82.14'],
+      origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://172.27.82.14'],
     }),
   );
   app.use(bodyParser.json());
 
-  nodeCron.schedule('0 12 * * *', () => {
-    getEmail().then((emails) => {
-      const emailData: EmailRecipient[] = emails.data;
-      for (let email in emailData.filter((email) => email.daily).map((email) => email.email)) {
-        sendEmail('Daily inventory summary', email);
-      }
+  if (enableScheduledJobs) {
+    nodeCron.schedule('0 12 * * *', () => {
+      getEmail().then((emails) => {
+        const emailData: EmailRecipient[] = emails.data;
+        for (let email in emailData.filter((email) => email.daily).map((email) => email.email)) {
+          sendEmail('Daily inventory summary', email);
+        }
+      });
     });
-  });
 
-  nodeCron.schedule('0 12 * * 6', () => {
-    getEmail().then((emails) => {
-      const emailData: EmailRecipient[] = emails.data;
-      for (let email of emailData.filter((email) => email.weekly).map((email) => email.email)) {
-        sendEmail('Weekly inventory summary', email);
-      }
+    nodeCron.schedule('0 12 * * 6', () => {
+      getEmail().then((emails) => {
+        const emailData: EmailRecipient[] = emails.data;
+        for (let email of emailData.filter((email) => email.weekly).map((email) => email.email)) {
+          sendEmail('Weekly inventory summary', email);
+        }
+      });
     });
-  });
-
-  // =============================================================================================================================
-  // Supabase Realtime → SSE fan-out
-  //
-  // A single persistent WebSocket connection to Supabase listens on both tables.
-  // Whenever Supabase fires a change event, broadcastSSE() forwards it to every
-  // browser tab that is currently holding an open GET /api/events connection.
-  //
-  // Requires Realtime to be enabled on both tables in the Supabase dashboard
-  // (Database → Replication → toggle INSERT/UPDATE/DELETE per table).
-
-  const realtimeClient = createClient(
-    config.VITE_SUPABASE_URL,
-    config.VITE_SUPABASE_PUBLISHABLE_KEY,
-  );
-
-  realtimeClient
-    .channel('db-changes')
-    // New transaction row = a quantity was recorded; the chart needs a new point.
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'transaction' },
-      (payload) => {
-        broadcastSSE('transaction_insert', payload.new);
-      },
-    )
-    // Any inventory_item mutation = item list may need refreshing on the frontend.
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'inventory_item' },
-      (payload) => {
-        broadcastSSE('inventory_change', {
-          eventType: payload.eventType,
-          record: payload.new,
-        });
-      },
-    )
-    .subscribe((status) => {
-      console.log('Supabase Realtime status:', status);
-    });
+  }
 
   // Proxies and browsers silently drop idle HTTP connections after ~30–60 s.
   // Sending an SSE comment frame every 25 s keeps every open stream alive.
-  setInterval(() => {
-    sseClients.forEach((res) => {
-      try {
-        res.write(': heartbeat\n\n');
-      } catch {
-        sseClients.delete(res);
-      }
-    });
-  }, 25_000);
+  if (enableHeartbeat) {
+    setInterval(() => {
+      sseClients.forEach((res) => {
+        try {
+          res.write(': heartbeat\n\n');
+        } catch {
+          sseClients.delete(res);
+        }
+      });
+    }, 25_000);
+  }
 
   // =============================================================================================================================
   // item routes
@@ -320,6 +291,13 @@ const initializeServer = async () => {
       if (!result.success) {
         return res.status(500).json({ error: result.error?.message ?? 'Failed to insert item' });
       }
+      const now = new Date().toISOString();
+      broadcastSSE('inventory_change', { eventType: 'INSERT', record: result.data });
+      broadcastSSE('transaction_insert', {
+        item_id: result.data?.item_id,
+        quantity: result.data?.quantity,
+        recorded_at: now,
+      });
       return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
@@ -344,6 +322,12 @@ const initializeServer = async () => {
           }
         });
       }
+      broadcastSSE('inventory_change', { eventType: 'UPDATE', record: result.data });
+      broadcastSSE('transaction_insert', {
+        item_id: id,
+        quantity: item.quantity,
+        recorded_at: new Date().toISOString(),
+      });
       return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
@@ -354,10 +338,72 @@ const initializeServer = async () => {
     try {
       const id = parseInt(req.params.id, 10);
       const result = await deleteItem(id);
+      broadcastSSE('inventory_change', { eventType: 'DELETE', record: { item_id: id } });
       return res.status(200).json({ success: result.success });
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
     }
+  });
+
+  // =============================================================================================================================
+  // Pending YOLO update review routes (admin only)
+  // Inference results are queued here instead of writing directly to the DB.
+  // Admins approve or reject each proposed quantity change on the Review Detections page.
+
+  apiRouter.get('/pending-updates', authorizeAdmin, (_req: Request, res: Response) => {
+    return res.status(200).json(pendingUpdates);
+  });
+
+  apiRouter.post(
+    '/pending-updates/:id/approve',
+    authorizeAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const idx = pendingUpdates.findIndex((u: PendingUpdate) => u.id === id);
+        if (idx === -1) return res.status(404).json({ error: 'Pending update not found' });
+
+        const update = pendingUpdates[idx];
+        const itemResult = await getItem(update.itemID);
+        if (!itemResult.data) return res.status(404).json({ error: 'Item not found' });
+
+        const item = itemResult.data as InventoryItem;
+        const oldQty = item.quantity;
+        const result = await putItem(update.itemID, { ...item, quantity: update.proposedQuantity });
+        if (!result.success) {
+          return res.status(500).json({ error: result.error?.message ?? 'Failed to update item' });
+        }
+
+        // Fire low-stock alert email if quantity crosses the threshold (same logic as PUT /items/:id)
+        if (update.proposedQuantity <= item.lowThreshold && oldQty > item.lowThreshold) {
+          getEmail().then((emails) => {
+            const emailData: EmailRecipient[] = emails.data;
+            for (const email of emailData.filter((e) => e.alerts).map((e) => e.email)) {
+              sendEmail('Low stock alert', email);
+            }
+          });
+        }
+
+        broadcastSSE('inventory_change', { eventType: 'UPDATE', record: result.data });
+        broadcastSSE('transaction_insert', {
+          item_id: update.itemID,
+          quantity: update.proposedQuantity,
+          recorded_at: new Date().toISOString(),
+        });
+        pendingUpdates.splice(idx, 1);
+        return res.status(200).json({ success: true });
+      } catch (err) {
+        return res.status(500).json({ error: 'Unexpected backend error' });
+      }
+    },
+  );
+
+  apiRouter.delete('/pending-updates/:id', authorizeAdmin, (req: Request, res: Response) => {
+    const { id } = req.params;
+    const idx = pendingUpdates.findIndex((u: PendingUpdate) => u.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'Pending update not found' });
+    pendingUpdates.splice(idx, 1);
+    return res.status(200).json({ success: true });
   });
 
   // =============================================================================================================================
@@ -527,9 +573,17 @@ const initializeServer = async () => {
   // Mount API router at /api path
   app.use('/api', apiRouter);
 
-  app.listen(port, () => {
-    console.log(`Listening on port: ${port}`);
-  });
+  if (startListening) {
+    app.listen(port, () => {
+      console.log(`Listening on port: ${port}`);
+    });
+  }
+
+  return app;
 };
 
-main();
+if (process.env.NODE_ENV !== 'test') {
+  main();
+}
+
+export { app, initializeServer, authorizeUser, authorizeAdmin };

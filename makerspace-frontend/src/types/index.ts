@@ -79,3 +79,14 @@ export type AppNotification = {
   createdAt: string;
   ignored: boolean;    // suppresses toasts; cleared when item restocks then re-dips
 };
+
+export type PendingUpdate = {
+  id: string;
+  itemID: number;
+  itemName: string;
+  cameraIndex: number | null;
+  currentQuantity: number;
+  proposedQuantity: number;
+  timestamp: string;
+  labelCounts: Record<string, number>;
+};
