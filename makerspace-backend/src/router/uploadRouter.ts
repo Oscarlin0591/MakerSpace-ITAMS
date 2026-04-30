@@ -140,6 +140,7 @@ export async function applyInferenceResults(
     for (const item of items) {
       if (!item.yoloLabels?.length) continue;
       const newQuantity = getProposedQuantity(item, labelCounts);
+      if (newQuantity === item.quantity) continue;
       queueUpdate(item, newQuantity, cameraIndex, labelCounts);
       console.log(`Queued update for ${item.itemName} -> ${newQuantity} (camera ${cameraIndex})`);
     }
@@ -151,6 +152,7 @@ export async function applyInferenceResults(
   for (const item of nullCameraItems) {
     if (!item.yoloLabels?.length) continue;
     const newQuantity = getProposedQuantity(item, combinedLabelCounts);
+    if (newQuantity === item.quantity) continue;
     queueUpdate(item, newQuantity, null, combinedLabelCounts);
     console.log(`Queued update for null-camera item ${item.itemName} -> ${newQuantity}`);
   }
@@ -231,8 +233,9 @@ const triggerInference = () => {
 imageRouter.post('/upload-image', authPi, upload.single('image'), (req: Request, res: Response) => {
   if (!req.file) return res.status(400).json({ error: 'No image provided' });
 
+  const bodyIndex = parseInt(req.body.camera_index, 10);
   const camMatch = req.file.originalname.match(/^cam(\d+)_/);
-  const cameraIndex = camMatch ? parseInt(camMatch[1], 10) : 0;
+  const cameraIndex = !isNaN(bodyIndex) ? bodyIndex : camMatch ? parseInt(camMatch[1], 10) : 0;
   pendingImages.push({ path: req.file.path, cameraIndex });
 
   // Start 30s timeout countdown when first image received

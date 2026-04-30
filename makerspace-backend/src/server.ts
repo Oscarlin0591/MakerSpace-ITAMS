@@ -33,8 +33,6 @@ import nodemailer from 'nodemailer';
 import { InventoryItem } from './models/inventory_item.ts';
 import nodeCron from 'node-cron';
 import { EmailRecipient } from './models/email_recipient.ts';
-import { createClient } from '@supabase/supabase-js';
-import config from './config.json';
 dotenv.config();
 
 // Extend express request to include nullable user type
@@ -121,7 +119,6 @@ const initializeServer = async ({
   startListening = true,
   enableEmail = true,
   enableScheduledJobs = true,
-  enableRealtime = true,
   enableHeartbeat = true,
 }: ServerOptions = {}) => {
   let activeTransporter: any = {
@@ -134,14 +131,14 @@ const initializeServer = async ({
 
     // Create a transporter using the test account
     activeTransporter = nodemailer.createTransport({
-        host: testAccount.smtp.host,
-        port: testAccount.smtp.port,
-        secure: testAccount.smtp.secure,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-      });
+      host: testAccount.smtp.host,
+      port: testAccount.smtp.port,
+      secure: testAccount.smtp.secure,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
   }
 
   async function sendEmail(summary: string, recipient: string) {
@@ -198,48 +195,6 @@ const initializeServer = async ({
         }
       });
     });
-  }
-
-  // =============================================================================================================================
-  // Supabase Realtime → SSE fan-out
-  //
-  // A single persistent WebSocket connection to Supabase listens on both tables.
-  // Whenever Supabase fires a change event, broadcastSSE() forwards it to every
-  // browser tab that is currently holding an open GET /api/events connection.
-  //
-  // Requires Realtime to be enabled on both tables in the Supabase dashboard
-  // (Database → Replication → toggle INSERT/UPDATE/DELETE per table).
-
-  if (enableRealtime) {
-    const realtimeClient = createClient(
-      config.VITE_SUPABASE_URL,
-      config.VITE_SUPABASE_PUBLISHABLE_KEY,
-    );
-
-    realtimeClient
-      .channel('db-changes')
-      // New transaction row = a quantity was recorded; the chart needs a new point.
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'transaction' },
-        (payload) => {
-          broadcastSSE('transaction_insert', payload.new);
-        },
-      )
-      // Any inventory_item mutation = item list may need refreshing on the frontend.
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'inventory_item' },
-        (payload) => {
-          broadcastSSE('inventory_change', {
-            eventType: payload.eventType,
-            record: payload.new,
-          });
-        },
-      )
-      .subscribe((status) => {
-        console.log('Supabase Realtime status:', status);
-      });
   }
 
   // Proxies and browsers silently drop idle HTTP connections after ~30–60 s.
@@ -336,6 +291,13 @@ const initializeServer = async ({
       if (!result.success) {
         return res.status(500).json({ error: result.error?.message ?? 'Failed to insert item' });
       }
+      const now = new Date().toISOString();
+      broadcastSSE('inventory_change', { eventType: 'INSERT', record: result.data });
+      broadcastSSE('transaction_insert', {
+        item_id: result.data?.item_id,
+        quantity: result.data?.quantity,
+        recorded_at: now,
+      });
       return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
@@ -360,6 +322,12 @@ const initializeServer = async ({
           }
         });
       }
+      broadcastSSE('inventory_change', { eventType: 'UPDATE', record: result.data });
+      broadcastSSE('transaction_insert', {
+        item_id: id,
+        quantity: item.quantity,
+        recorded_at: new Date().toISOString(),
+      });
       return res.status(200).send(result.data);
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
@@ -370,6 +338,7 @@ const initializeServer = async ({
     try {
       const id = parseInt(req.params.id, 10);
       const result = await deleteItem(id);
+      broadcastSSE('inventory_change', { eventType: 'DELETE', record: { item_id: id } });
       return res.status(200).json({ success: result.success });
     } catch (err) {
       return res.status(500).json({ error: 'Unexpected backend error' });
@@ -385,39 +354,49 @@ const initializeServer = async ({
     return res.status(200).json(pendingUpdates);
   });
 
-  apiRouter.post('/pending-updates/:id/approve', authorizeAdmin, async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const idx = pendingUpdates.findIndex((u: PendingUpdate) => u.id === id);
-      if (idx === -1) return res.status(404).json({ error: 'Pending update not found' });
+  apiRouter.post(
+    '/pending-updates/:id/approve',
+    authorizeAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const idx = pendingUpdates.findIndex((u: PendingUpdate) => u.id === id);
+        if (idx === -1) return res.status(404).json({ error: 'Pending update not found' });
 
-      const update = pendingUpdates[idx];
-      const itemResult = await getItem(update.itemID);
-      if (!itemResult.data) return res.status(404).json({ error: 'Item not found' });
+        const update = pendingUpdates[idx];
+        const itemResult = await getItem(update.itemID);
+        if (!itemResult.data) return res.status(404).json({ error: 'Item not found' });
 
-      const item = itemResult.data as InventoryItem;
-      const oldQty = item.quantity;
-      const result = await putItem(update.itemID, { ...item, quantity: update.proposedQuantity });
-      if (!result.success) {
-        return res.status(500).json({ error: result.error?.message ?? 'Failed to update item' });
-      }
+        const item = itemResult.data as InventoryItem;
+        const oldQty = item.quantity;
+        const result = await putItem(update.itemID, { ...item, quantity: update.proposedQuantity });
+        if (!result.success) {
+          return res.status(500).json({ error: result.error?.message ?? 'Failed to update item' });
+        }
 
-      // Fire low-stock alert email if quantity crosses the threshold (same logic as PUT /items/:id)
-      if (update.proposedQuantity <= item.lowThreshold && oldQty > item.lowThreshold) {
-        getEmail().then((emails) => {
-          const emailData: EmailRecipient[] = emails.data;
-          for (const email of emailData.filter((e) => e.alerts).map((e) => e.email)) {
-            sendEmail('Low stock alert', email);
-          }
+        // Fire low-stock alert email if quantity crosses the threshold (same logic as PUT /items/:id)
+        if (update.proposedQuantity <= item.lowThreshold && oldQty > item.lowThreshold) {
+          getEmail().then((emails) => {
+            const emailData: EmailRecipient[] = emails.data;
+            for (const email of emailData.filter((e) => e.alerts).map((e) => e.email)) {
+              sendEmail('Low stock alert', email);
+            }
+          });
+        }
+
+        broadcastSSE('inventory_change', { eventType: 'UPDATE', record: result.data });
+        broadcastSSE('transaction_insert', {
+          item_id: update.itemID,
+          quantity: update.proposedQuantity,
+          recorded_at: new Date().toISOString(),
         });
+        pendingUpdates.splice(idx, 1);
+        return res.status(200).json({ success: true });
+      } catch (err) {
+        return res.status(500).json({ error: 'Unexpected backend error' });
       }
-
-      pendingUpdates.splice(idx, 1);
-      return res.status(200).json({ success: true });
-    } catch (err) {
-      return res.status(500).json({ error: 'Unexpected backend error' });
-    }
-  });
+    },
+  );
 
   apiRouter.delete('/pending-updates/:id', authorizeAdmin, (req: Request, res: Response) => {
     const { id } = req.params;
